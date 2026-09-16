@@ -228,7 +228,7 @@ export default function Actions() {
               {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
               <div className="form-group">
                 <label>Libellé de l'action *</label>
-                <input required value={form.libelle} onChange={(e) => setForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Décrire l'action à mener…" />
+                <input type="text" required value={form.libelle} onChange={(e) => setForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Décrire l'action à mener…" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                 <div className="form-group">
@@ -245,7 +245,7 @@ export default function Actions() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                 <div className="form-group">
                   <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
-                  <input value={form.responsable} onChange={(e) => setForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
+                  <input type="text" value={form.responsable} onChange={(e) => setForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
                 </div>
                 <div className="form-group">
                   <label>Échéance <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
@@ -288,7 +288,7 @@ export default function Actions() {
                 {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
                 <div className="form-group">
                   <label>Libellé de l'action *</label>
-                  <input required value={editForm.libelle} onChange={(e) => setEditForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Libellé…" />
+                  <input type="text" required value={editForm.libelle} onChange={(e) => setEditForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Libellé…" />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                   <div className="form-group">
@@ -302,7 +302,7 @@ export default function Actions() {
                 </div>
                 <div className="form-group">
                   <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
-                  <input value={editForm.responsable} onChange={(e) => setEditForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
+                  <input type="text" value={editForm.responsable} onChange={(e) => setEditForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
                 </div>
               </div>
               <div className="modal-footer">
