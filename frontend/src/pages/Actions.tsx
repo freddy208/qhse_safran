@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { actionsApi, ActionCorrective, StatutAction } from '../api/client';
 import { StatutSelect } from '../components/StatusBadge';
+import { useToast } from '../contexts/ToastContext';
 
 const IconTrash = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -36,6 +37,7 @@ const STATUTS: StatutAction[] = ['NON_DEMARRE', 'EN_COURS', 'REALISE'];
 
 export default function Actions() {
   const { projetActif } = useProject();
+  const toast = useToast();
   const [actions,  setActions]  = useState<ActionCorrective[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [modifId,  setModifId]  = useState<number | null>(null);
@@ -58,6 +60,7 @@ export default function Actions() {
   const changerStatut = async (id: number, statut: StatutAction) => {
     setModifId(id);
     try { await actionsApi.patchStatut(id, statut); await charger(); }
+    catch (e) { toast.error((e as Error).message); }
     finally { setModifId(null); }
   };
 
@@ -81,8 +84,8 @@ export default function Actions() {
 
   const supprimerAction = async (id: number) => {
     if (!confirm('Supprimer cette action spécifique ?')) return;
-    await actionsApi.delete(id);
-    await charger();
+    try { await actionsApi.delete(id); await charger(); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   const ouvrirEdit = (a: ActionCorrective) => {

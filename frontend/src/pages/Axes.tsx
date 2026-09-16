@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { axesApi, sousActionsApi, commentairesApi, Axe, SousAction, StatutAction, Commentaire } from '../api/client';
 import { StatutSelect, ScorePill, ProgressBar, StatutBadge } from '../components/StatusBadge';
+import { useToast } from '../contexts/ToastContext';
 
 const IconChevron = ({ open }: { open: boolean }) => (
   <svg
@@ -28,6 +29,7 @@ const IconTrash = () => (
 
 export default function Axes() {
   const { projetActif } = useProject();
+  const toast = useToast();
   const [axes,     setAxes]     = useState<Axe[]>([]);
   const [ouverts,  setOuverts]  = useState<Set<number>>(new Set());
   const [loading,  setLoading]  = useState(true);
@@ -65,21 +67,24 @@ export default function Axes() {
     try {
       await sousActionsApi.patchStatut(sa.id, statut);
       await charger();
-    } finally { setModifSA(null); }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setModifSA(null); }
   };
 
   const envoyerCommentaire = async (axeId: number) => {
     const texte = nouveauComm[axeId]?.trim();
     if (!texte) return;
-    await commentairesApi.create({ texte, axeId });
-    setNouveauComm((prev) => ({ ...prev, [axeId]: '' }));
-    await chargerCommentaires(axeId);
+    try {
+      await commentairesApi.create({ texte, axeId });
+      setNouveauComm((prev) => ({ ...prev, [axeId]: '' }));
+      await chargerCommentaires(axeId);
+    } catch (e) { toast.error((e as Error).message); }
   };
 
   const supprimerCommentaire = async (commId: number, axeId: number) => {
     if (!confirm('Supprimer ce commentaire ?')) return;
-    await commentairesApi.delete(commId);
-    await chargerCommentaires(axeId);
+    try { await commentairesApi.delete(commId); await chargerCommentaires(axeId); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   if (loading) return (

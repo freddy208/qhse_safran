@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { axesApi, sousActionsApi, zonesApi, armoiresApi, Axe, SousAction, Zone } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
 
 type Onglet = 'axes' | 'zones';
 
@@ -30,6 +31,7 @@ const IconX = () => (
 
 export default function Referentiel() {
   const { projetActif, refreshProjets } = useProject();
+  const toast = useToast();
   const [onglet,      setOnglet]      = useState<Onglet>('axes');
   const [axes,        setAxes]        = useState<Axe[]>([]);
   const [zones,       setZones]       = useState<Zone[]>([]);
@@ -73,10 +75,10 @@ export default function Referentiel() {
     finally { setBusy(false); }
   };
 
-  const suppAxe     = async (id: number) => { if (!confirm('Supprimer cet axe et toutes ses sous-actions ?')) return; await axesApi.delete(id); await charger(); await refreshProjets(); };
-  const suppSA      = async (id: number) => { if (!confirm('Supprimer cette sous-action ?')) return; await sousActionsApi.delete(id); await charger(); };
-  const suppZone    = async (id: number) => { if (!confirm('Supprimer cette zone et ses armoires ?')) return; await zonesApi.delete(id); await charger(); };
-  const suppArmoire = async (id: number) => { if (!confirm('Supprimer cette armoire ?')) return; await armoiresApi.delete(id); await charger(); };
+  const suppAxe     = async (id: number) => { if (!confirm('Supprimer cet axe et toutes ses sous-actions ?')) return; try { await axesApi.delete(id); await charger(); await refreshProjets(); } catch (e) { toast.error((e as Error).message); } };
+  const suppSA      = async (id: number) => { if (!confirm('Supprimer cette sous-action ?')) return; try { await sousActionsApi.delete(id); await charger(); } catch (e) { toast.error((e as Error).message); } };
+  const suppZone    = async (id: number) => { if (!confirm('Supprimer cette zone et ses armoires ?')) return; try { await zonesApi.delete(id); await charger(); } catch (e) { toast.error((e as Error).message); } };
+  const suppArmoire = async (id: number) => { if (!confirm('Supprimer cette armoire ?')) return; try { await armoiresApi.delete(id); await charger(); } catch (e) { toast.error((e as Error).message); } };
 
   const ouvrirEditAxe = (axe: Axe) => { setEditAxeId(axe.id); setEditAxeForm({ code: axe.code, intitule: axe.intitule, ponderation: String(axe.ponderation) }); };
   const sauvegarderAxe = soumettre(() => axesApi.update(editAxeId!, { code: editAxeForm.code, intitule: editAxeForm.intitule, ponderation: parseFloat(editAxeForm.ponderation) }).then(() => setEditAxeId(null)));

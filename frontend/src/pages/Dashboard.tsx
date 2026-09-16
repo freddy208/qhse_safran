@@ -8,6 +8,7 @@ import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { dashboardApi, exportApi, DashboardData, HistoriqueScore, AlertesData } from '../api/client';
 import { ScorePill, ProgressBar } from '../components/StatusBadge';
+import { useToast } from '../contexts/ToastContext';
 
 function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
@@ -26,6 +27,7 @@ const TooltipStyle = {
 
 export default function Dashboard() {
   const { projetActif } = useProject();
+  const toast = useToast();
   const [data,         setData]         = useState<DashboardData | null>(null);
   const [historique,   setHistorique]   = useState<HistoriqueScore[]>([]);
   const [alertes,      setAlertes]      = useState<AlertesData | null>(null);
@@ -35,8 +37,8 @@ export default function Dashboard() {
   const handleRapport = async () => {
     if (!projetActif) return;
     setRapportBusy(true);
-    try { await exportApi.rapport(projetActif.id); }
-    catch (e) { alert((e as Error).message); }
+    try { await exportApi.rapport(projetActif.id); toast.success('Rapport PDF téléchargé'); }
+    catch (e) { toast.error((e as Error).message); }
     finally { setRapportBusy(false); }
   };
 

@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { zonesApi, armoiresApi, produitsApi, exportApi, Zone, ProduitAvecConformite } from '../api/client';
 import { ConformiteBadge } from '../components/StatusBadge';
+import { useToast } from '../contexts/ToastContext';
 
 interface ProduitForm {
   nom: string; codeProduit: string; quantitePresente: string;
@@ -38,6 +39,7 @@ const IconTrash = () => (
 
 export default function Inventaire() {
   const { projetActif } = useProject();
+  const toast = useToast();
   const [zones,     setZones]     = useState<Zone[]>([]);
   const [zoneId,    setZoneId]    = useState<number | null>(null);
   const [armoireId, setArmoireId] = useState<number | null>(null);
@@ -112,8 +114,8 @@ export default function Inventaire() {
 
   const supprimer = async (id: number) => {
     if (!confirm('Supprimer ce produit définitivement ?')) return;
-    await produitsApi.delete(id);
-    refresh();
+    try { await produitsApi.delete(id); refresh(); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   const zoneActive = zones.find((z) => z.id === zoneId);
@@ -151,8 +153,8 @@ export default function Inventaire() {
   const handleExportPdf = async () => {
     if (!projetActif) return;
     setExportBusy(true);
-    try { await exportApi.inventaire(projetActif.id); }
-    catch (e) { alert((e as Error).message); }
+    try { await exportApi.inventaire(projetActif.id); toast.success('PDF inventaire téléchargé'); }
+    catch (e) { toast.error((e as Error).message); }
     finally { setExportBusy(false); }
   };
 
