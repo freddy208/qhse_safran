@@ -1,0 +1,280 @@
+import { useEffect, useState, FormEvent } from 'react';
+import Layout from '../components/Layout';
+import { useProject } from '../contexts/ProjectContext';
+import { axesApi, sousActionsApi, zonesApi, armoiresApi, Axe, SousAction, Zone } from '../api/client';
+
+type Onglet = 'axes' | 'zones';
+
+const IconTrash = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+  </svg>
+);
+
+export default function Referentiel() {
+  const { projetActif, refreshProjets } = useProject();
+  const [onglet,      setOnglet]      = useState<Onglet>('axes');
+  const [axes,        setAxes]        = useState<Axe[]>([]);
+  const [zones,       setZones]       = useState<Zone[]>([]);
+  const [err,         setErr]         = useState<string | null>(null);
+  const [busy,        setBusy]        = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [axeForm,     setAxeForm]     = useState({ code: '', intitule: '', ponderation: '' });
+  const [saForm,      setSaForm]      = useState({ libelle: '', ponderationDansAxe: '' });
+  const [saAxeId,     setSaAxeId]     = useState<number | null>(null);
+  const [zoneForm,    setZoneForm]    = useState('');
+  const [zoneIdA,     setZoneIdA]     = useState<number | null>(null);
+  const [armoireForm, setArmoireForm] = useState('');
+
+  const charger = async (init = false) => {
+    if (!projetActif) return;
+    if (init) setLoading(true);
+    try {
+      const [a, z] = await Promise.all([axesApi.list(projetActif.id), zonesApi.list(projetActif.id)]);
+      setAxes(a); setZones(z);
+      if (a[0] && !saAxeId)  setSaAxeId(a[0].id);
+      if (z[0] && !zoneIdA)  setZoneIdA(z[0].id);
+    } finally { if (init) setLoading(false); }
+  };
+
+  useEffect(() => { charger(true); }, [projetActif?.id]);
+
+  const soumettre = (fn: () => Promise<void>) => async (e: FormEvent) => {
+    e.preventDefault(); setErr(null); setBusy(true);
+    try { await fn(); await charger(); await refreshProjets(); }
+    catch (ex: unknown) { setErr((ex as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const suppAxe    = async (id: number) => { if (!confirm('Supprimer cet axe et toutes ses sous-actions ?')) return; await axesApi.delete(id); await charger(); await refreshProjets(); };
+  const suppSA     = async (id: number) => { if (!confirm('Supprimer cette sous-action ?')) return; await sousActionsApi.delete(id); await charger(); };
+  const suppZone   = async (id: number) => { if (!confirm('Supprimer cette zone et ses armoires ?')) return; await zonesApi.delete(id); await charger(); };
+  const suppArmoire = async (id: number) => { if (!confirm('Supprimer cette armoire ?')) return; await armoiresApi.delete(id); await charger(); };
+
+  if (loading) return (
+    <Layout title="Référentiel" subtitle={projetActif?.nom}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 32, width: 120, borderRadius: 4 }} />)}
+      </div>
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="card mb-12" style={{ padding: 14 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div className="skeleton" style={{ height: 14, width: 60 }} />
+            <div className="skeleton" style={{ height: 14, flex: 1 }} />
+            <div className="skeleton" style={{ height: 26, width: 60, borderRadius: 4 }} />
+          </div>
+          {[...Array(2)].map((_, j) => (
+            <div key={j} style={{ display: 'flex', gap: 8, marginLeft: 16, marginBottom: 6 }}>
+              <div className="skeleton" style={{ height: 11, flex: 1 }} />
+              <div className="skeleton" style={{ height: 20, width: 70, borderRadius: 4 }} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </Layout>
+  );
+
+  return (
+    <Layout
+      title="Référentiel"
+      subtitle={`Configuration des axes, zones et armoires — ${projetActif?.nom ?? ''}`}
+    >
+      {/* ── Tabs ─────────────────────────────────────────────────── */}
+      <div className="tabs">
+        {(['axes', 'zones'] as Onglet[]).map((o) => (
+          <button key={o} className={`tab${onglet === o ? ' active' : ''}`} onClick={() => setOnglet(o)}>
+            {o === 'axes' ? 'Axes & Sous-actions' : 'Zones & Armoires'}
+          </button>
+        ))}
+      </div>
+
+      {err && <div className="alert alert-error mb-16">{err}</div>}
+
+      {/* ═══ AXES ════════════════════════════════════════════════════ */}
+      {onglet === 'axes' && (
+        <>
+          {/* Créer axe */}
+          <div className="card mb-14">
+            <div className="card-header"><span className="card-title">Ajouter un axe</span></div>
+            <div className="card-body">
+              <form onSubmit={soumettre(() => axesApi.create(projetActif!.id, {
+                code: axeForm.code, intitule: axeForm.intitule,
+                ponderation: parseFloat(axeForm.ponderation),
+              }).then(() => setAxeForm({ code: '', intitule: '', ponderation: '' })))}>
+                <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 130px auto', gap: '0 12px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Code</label>
+                    <input type="text" required value={axeForm.code} onChange={(e) => setAxeForm((p) => ({ ...p, code: e.target.value }))} placeholder="AXE8" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Intitulé</label>
+                    <input type="text" required value={axeForm.intitule} onChange={(e) => setAxeForm((p) => ({ ...p, intitule: e.target.value }))} placeholder="Libellé de l'axe…" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Pondération (%)</label>
+                    <input type="number" min="0" max="100" step="0.1" required value={axeForm.ponderation} onChange={(e) => setAxeForm((p) => ({ ...p, ponderation: e.target.value }))} placeholder="10" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={busy} style={{ marginBottom: 1 }}>Ajouter</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Créer sous-action */}
+          <div className="card mb-14">
+            <div className="card-header"><span className="card-title">Ajouter une sous-action</span></div>
+            <div className="card-body">
+              <form onSubmit={soumettre(() => sousActionsApi.create(saAxeId!, {
+                libelle: saForm.libelle, ponderationDansAxe: parseFloat(saForm.ponderationDansAxe),
+              }).then(() => setSaForm({ libelle: '', ponderationDansAxe: '' })))}>
+                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 130px auto', gap: '0 12px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Axe parent</label>
+                    <select value={saAxeId ?? ''} onChange={(e) => setSaAxeId(Number(e.target.value))}>
+                      {axes.map((a) => <option key={a.id} value={a.id}>{a.code} – {a.intitule.slice(0, 28)}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Libellé de la sous-action</label>
+                    <input type="text" required value={saForm.libelle} onChange={(e) => setSaForm((p) => ({ ...p, libelle: e.target.value }))} placeholder="Libellé…" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Poids dans axe (%)</label>
+                    <input type="number" min="0" max="100" step="0.1" required value={saForm.ponderationDansAxe} onChange={(e) => setSaForm((p) => ({ ...p, ponderationDansAxe: e.target.value }))} placeholder="20" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !saAxeId} style={{ marginBottom: 1 }}>Ajouter</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Liste axes */}
+          {axes.map((axe) => (
+            <div key={axe.id} className="card mb-12">
+              <div className="card-header">
+                <div className="flex items-center gap-10">
+                  <span className="axe-code-chip">{axe.code}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{axe.intitule}</span>
+                  <span style={{ fontSize: 12, color: 'var(--gray-400)', fontWeight: 400 }}>— {axe.ponderation}%</span>
+                </div>
+                <button className="btn btn-danger btn-xs" onClick={() => suppAxe(axe.id)}>
+                  <IconTrash /> Supprimer
+                </button>
+              </div>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ paddingLeft: 20 }}>Libellé sous-action</th>
+                      <th style={{ width: 100 }}>Poids</th>
+                      <th style={{ width: 80 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(axe.sousActions ?? []).map((sa: SousAction) => (
+                      <tr key={sa.id}>
+                        <td style={{ paddingLeft: 20 }}>{sa.libelle}</td>
+                        <td>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{sa.ponderationDansAxe}%</span>
+                        </td>
+                        <td>
+                          <button className="btn-icon" title="Supprimer" onClick={() => suppSA(sa.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}>
+                            <IconTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!axe.sousActions || axe.sousActions.length === 0) && (
+                      <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-400)', fontStyle: 'italic', paddingLeft: 20 }}>Aucune sous-action</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* ═══ ZONES ═══════════════════════════════════════════════════ */}
+      {onglet === 'zones' && (
+        <>
+          {/* Créer zone */}
+          <div className="card mb-14">
+            <div className="card-header"><span className="card-title">Ajouter une zone</span></div>
+            <div className="card-body">
+              <form onSubmit={soumettre(() => zonesApi.create(projetActif!.id, zoneForm).then(() => setZoneForm('')))}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0 12px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Nom de la zone</label>
+                    <input type="text" required value={zoneForm} onChange={(e) => setZoneForm(e.target.value)} placeholder="Ex : ICLC, Atelier Est…" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={busy} style={{ marginBottom: 1 }}>Ajouter</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Créer armoire */}
+          <div className="card mb-14">
+            <div className="card-header"><span className="card-title">Ajouter une armoire</span></div>
+            <div className="card-body">
+              <form onSubmit={soumettre(() => armoiresApi.create(zoneIdA!, armoireForm).then(() => setArmoireForm('')))}>
+                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr auto', gap: '0 12px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Zone</label>
+                    <select value={zoneIdA ?? ''} onChange={(e) => setZoneIdA(Number(e.target.value))}>
+                      {zones.map((z) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Nom de l'armoire</label>
+                    <input type="text" required value={armoireForm} onChange={(e) => setArmoireForm(e.target.value)} placeholder="Ex : Armoire 1, Casier Sud…" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !zoneIdA} style={{ marginBottom: 1 }}>Ajouter</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Liste zones */}
+          {zones.map((zone) => (
+            <div key={zone.id} className="card mb-12">
+              <div className="card-header">
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Zone : {zone.nom}</span>
+                <button className="btn btn-danger btn-xs" onClick={() => suppZone(zone.id)}>
+                  <IconTrash /> Supprimer
+                </button>
+              </div>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ paddingLeft: 20 }}>Armoire</th>
+                      <th style={{ width: 80 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(zone.armoires ?? []).map((a) => (
+                      <tr key={a.id}>
+                        <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.nom}</td>
+                        <td>
+                          <button className="btn-icon" title="Supprimer" onClick={() => suppArmoire(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}>
+                            <IconTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!zone.armoires || zone.armoires.length === 0) && (
+                      <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--gray-400)', fontStyle: 'italic', paddingLeft: 20 }}>Aucune armoire dans cette zone</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </Layout>
+  );
+}

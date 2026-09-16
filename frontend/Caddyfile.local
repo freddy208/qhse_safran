@@ -1,0 +1,15 @@
+:80 {
+    encode gzip
+
+    # Proxy toutes les requêtes API vers le backend
+    handle /api/* {
+        reverse_proxy backend:4000
+    }
+
+    # SPA — tous les autres chemins servent index.html
+    handle {
+        root * /srv
+        file_server
+        try_files {path} /index.html
+    }
+}

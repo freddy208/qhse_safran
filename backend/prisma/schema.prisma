@@ -1,0 +1,247 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatutAction {
+  NON_DEMARRE
+  EN_COURS
+  REALISE
+}
+
+enum ResultatEnum {
+  CONFORME
+  ECART_MINEUR
+  ECART_MAJEUR
+}
+
+enum ConformiteAudit {
+  OUI
+  NON
+}
+
+model Utilisateur {
+  id             Int      @id @default(autoincrement())
+  nom            String
+  email          String   @unique
+  motDePasseHash String
+  role           String   @default("utilisateur")
+  dateCreation   DateTime @default(now())
+
+  commentaires Commentaire[]
+  auditLogs    AuditLog[]
+
+  @@map("utilisateurs")
+}
+
+model Projet {
+  id          Int     @id @default(autoincrement())
+  nom         String  @unique
+  description String?
+
+  axes               Axe[]
+  zones              Zone[]
+  exigencesAudit     ExigenceAudit[]
+  actionsCorrectives ActionCorrective[]
+  historiqueScores   HistoriqueScore[]
+
+  @@map("projets")
+  @@index([nom])
+}
+
+model Axe {
+  id          Int    @id @default(autoincrement())
+  projetId    Int
+  code        String
+  intitule    String
+  ponderation Float
+
+  projet           Projet            @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  sousActions      SousAction[]
+  commentaires     Commentaire[]
+  historiqueScores HistoriqueScore[]
+
+  @@map("axes")
+  @@index([projetId])
+}
+
+model SousAction {
+  id                 Int          @id @default(autoincrement())
+  axeId              Int
+  libelle            String
+  ponderationDansAxe Float
+  statut             StatutAction @default(NON_DEMARRE)
+  responsable        String?
+  echeance           DateTime?
+  dateDerniereMaj    DateTime     @updatedAt
+
+  axe Axe @relation(fields: [axeId], references: [id], onDelete: Cascade)
+
+  @@map("sous_actions")
+  @@index([axeId])
+  @@index([statut])
+}
+
+model Zone {
+  id       Int    @id @default(autoincrement())
+  projetId Int
+  nom      String
+
+  projet       Projet        @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  armoires     Armoire[]
+  commentaires Commentaire[]
+
+  @@map("zones")
+}
+
+model Armoire {
+  id     Int    @id @default(autoincrement())
+  zoneId Int
+  nom    String
+
+  zone     Zone              @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  produits Produit[]
+  resultats ResultatCritere[]
+
+  @@map("armoires")
+}
+
+model TypeChecklist {
+  id  Int    @id @default(autoincrement())
+  nom String @unique
+
+  criteres Critere[]
+
+  @@map("type_checklists")
+}
+
+model Critere {
+  id              Int    @id @default(autoincrement())
+  typeChecklistId Int
+  libelle         String
+  ordre           Int
+
+  typeChecklist TypeChecklist     @relation(fields: [typeChecklistId], references: [id], onDelete: Cascade)
+  resultats     ResultatCritere[]
+
+  @@map("criteres")
+}
+
+model ResultatCritere {
+  id              Int          @id @default(autoincrement())
+  armoireId       Int
+  critereId       Int
+  resultat        ResultatEnum
+  dateDerniereMaj DateTime     @updatedAt
+
+  armoire Armoire @relation(fields: [armoireId], references: [id], onDelete: Cascade)
+  critere Critere @relation(fields: [critereId], references: [id], onDelete: Cascade)
+
+  @@unique([armoireId, critereId])
+  @@map("resultats_criteres")
+}
+
+model Produit {
+  id                  Int       @id @default(autoincrement())
+  armoireId           Int
+  nom                 String
+  codeProduit         String?
+  quantitePresente    Float?
+  quantiteUtilisee    Float?
+  volumeMax           Float?
+  datePeremption      DateTime?
+  urlFds              String?
+  fdsDateVerification DateTime?
+  dateDerniereMaj     DateTime  @updatedAt
+
+  armoire Armoire @relation(fields: [armoireId], references: [id], onDelete: Cascade)
+
+  @@map("produits")
+  @@index([armoireId])
+  @@index([datePeremption])
+}
+
+model ExigenceAudit {
+  id               Int              @id @default(autoincrement())
+  projetId         Int
+  domaine          String
+  exigence         String
+  questionControle String?
+  conformite       ConformiteAudit?
+  preuves          String?
+  actionAMener     String?
+  responsable      String?
+  dateDerniereMaj  DateTime         @updatedAt
+
+  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@map("exigences_audit")
+}
+
+model ActionCorrective {
+  id              Int          @id @default(autoincrement())
+  projetId        Int
+  libelle         String
+  ponderation     Float
+  statut          StatutAction @default(NON_DEMARRE)
+  responsable     String?
+  echeance        DateTime?
+  estGenerique    Boolean      @default(false)
+  dateDerniereMaj DateTime     @updatedAt
+
+  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@map("actions_correctives")
+  @@index([projetId])
+  @@index([statut])
+}
+
+model Commentaire {
+  id       Int      @id @default(autoincrement())
+  zoneId   Int?
+  axeId    Int?
+  auteurId Int
+  texte    String
+  date     DateTime @default(now())
+
+  zone   Zone?       @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  axe    Axe?        @relation(fields: [axeId], references: [id], onDelete: SetNull)
+  auteur Utilisateur @relation(fields: [auteurId], references: [id])
+
+  @@map("commentaires")
+}
+
+model AuditLog {
+  id             Int      @id @default(autoincrement())
+  utilisateurId  Int?
+  tableConcernee String
+  ligneId        Int
+  champModifie   String
+  ancienneValeur String?
+  nouvelleValeur String?
+  dateHeure      DateTime @default(now())
+
+  utilisateur Utilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+  @@index([tableConcernee, ligneId])
+  @@index([dateHeure])
+}
+
+model HistoriqueScore {
+  id       Int      @id @default(autoincrement())
+  projetId Int
+  axeId    Int?
+  score    Float
+  date     DateTime @default(now())
+
+  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  axe    Axe?   @relation(fields: [axeId], references: [id], onDelete: Cascade)
+
+  @@map("historique_scores")
+}

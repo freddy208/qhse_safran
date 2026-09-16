@@ -1,0 +1,30 @@
+# ── Reverse proxy Caddy pour le HTTPS automatique (Let's Encrypt) ────────
+# Remplacez "votre-domaine.exemple.fr" par votre vrai domaine avant déploiement.
+# En local (test sans domaine), utilisez docker-compose.local.yml qui supprime ce fichier.
+
+{
+  email admin@votre-domaine.exemple.fr
+}
+
+votre-domaine.exemple.fr {
+  # Frontend (React SPA)
+  handle {
+    reverse_proxy frontend:80
+  }
+
+  # Backend API
+  handle /api/* {
+    reverse_proxy backend:4000
+  }
+
+  # Compression et en-têtes de sécurité
+  encode gzip
+
+  header {
+    X-Content-Type-Options  nosniff
+    X-Frame-Options         DENY
+    X-XSS-Protection        "1; mode=block"
+    Referrer-Policy         strict-origin-when-cross-origin
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+}
