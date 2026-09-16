@@ -6,6 +6,7 @@ import Axes        from './pages/Axes';
 import Checklists  from './pages/Checklists';
 import Inventaire  from './pages/Inventaire';
 import Actions     from './pages/Actions';
+import Alertes     from './pages/Alertes';
 import Exigences   from './pages/Exigences';
 import Referentiel from './pages/Referentiel';
 
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/checklists"  element={<RequireAuth><Checklists /></RequireAuth>} />
       <Route path="/inventaire"  element={<RequireAuth><Inventaire /></RequireAuth>} />
       <Route path="/actions"     element={<RequireAuth><Actions /></RequireAuth>} />
+      <Route path="/alertes"     element={<RequireAuth><Alertes /></RequireAuth>} />
       <Route path="/exigences"   element={<RequireAuth><Exigences /></RequireAuth>} />
       <Route path="/referentiel" element={<RequireAuth><Referentiel /></RequireAuth>} />
       <Route path="*"            element={<Navigate to="/" replace />} />

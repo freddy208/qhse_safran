@@ -98,6 +98,29 @@ router.post('/armoires/:armoireId/resultats', requireAuth, ah(async (req: Reques
     ancienneValeur: existing?.resultat ?? null,
     nouvelleValeur: resultat.resultat,
   });
+
+  // Auto-create alert when a major deviation is detected for the first time
+  if (parsed.data.resultat === 'ECART_MAJEUR' && (!existing || existing.resultat !== 'ECART_MAJEUR')) {
+    const armoire = await prisma.armoire.findUnique({
+      where: { id: armoireId },
+      include: { zone: true },
+    });
+    const critere = await prisma.critere.findUnique({
+      where: { id: parsed.data.critereId },
+      include: { typeChecklist: true },
+    });
+    if (armoire && critere) {
+      await prisma.alerte.create({
+        data: {
+          projetId:    armoire.zone.projetId,
+          titre:       `Écart majeur : ${critere.libelle}`,
+          description: `Checklist "${critere.typeChecklist.nom}" · Armoire "${armoire.nom}" (Zone "${armoire.zone.nom}")`,
+          priorite:    'HAUTE',
+        },
+      });
+    }
+  }
+
   return res.json(resultat);
 }));
 

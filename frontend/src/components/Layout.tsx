@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth }    from '../contexts/AuthContext';
 import { useProject } from '../contexts/ProjectContext';
-import { axesApi, zonesApi, actionsApi, exigencesApi, checklistsApi, dashboardApi } from '../api/client';
+import { axesApi, zonesApi, actionsApi, exigencesApi, checklistsApi, dashboardApi, alertesManuellesApi } from '../api/client';
 
 /* ── SVG Icons ──────────────────────────────────────────────────────────── */
 const IconDashboard = () => (
@@ -63,6 +63,12 @@ const IconQhse = () => (
     <path d="M9 12l2 2 4-4"/>
   </svg>
 );
+const IconAlertes = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
 
 const NAV: { to: string; label: string; Icon: () => JSX.Element; prefetch?: (id: number) => void }[] = [
   { to: '/',            label: 'Tableau de bord',    Icon: IconDashboard,  prefetch: (id) => { dashboardApi.get(id); dashboardApi.historique(id); dashboardApi.alertes(id); } },
@@ -70,7 +76,8 @@ const NAV: { to: string; label: string; Icon: () => JSX.Element; prefetch?: (id:
   { to: '/checklists',  label: 'Checklists',         Icon: IconChecklists, prefetch: (id) => { zonesApi.list(id); checklistsApi.listTypes(); } },
   { to: '/inventaire',  label: 'Inventaire',         Icon: IconInventaire, prefetch: (id) => { zonesApi.list(id); } },
   { to: '/actions',     label: 'Actions correctives',Icon: IconActions,    prefetch: (id) => { actionsApi.list(id); } },
-  { to: '/exigences',   label: 'Audit PRO0239',      Icon: IconExigences,  prefetch: (id) => { exigencesApi.list(id); } },
+  { to: '/alertes',     label: 'Alertes',            Icon: IconAlertes,    prefetch: (id) => { alertesManuellesApi.list(id); dashboardApi.alertes(id); } },
+  { to: '/exigences',   label: 'Audit',              Icon: IconExigences,  prefetch: (id) => { exigencesApi.list(id); } },
   { to: '/referentiel', label: 'Référentiel',        Icon: IconReferentiel,prefetch: (id) => { axesApi.list(id); zonesApi.list(id); } },
 ];
 
@@ -89,6 +96,14 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
   const { user, logout }                        = useAuth();
   const { projets, projetActif, setProjetActif } = useProject();
   const navigate                                 = useNavigate();
+  const [nbAlertes, setNbAlertes] = useState(0);
+
+  useEffect(() => {
+    if (!projetActif) return;
+    alertesManuellesApi.list(projetActif.id)
+      .then((list) => setNbAlertes(list.filter((a) => a.statut !== 'RESOLUE').length))
+      .catch(() => {});
+  }, [projetActif?.id]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -136,6 +151,15 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
             >
               <Icon />
               {label}
+              {to === '/alertes' && nbAlertes > 0 && (
+                <span style={{
+                  marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9,
+                  background: '#C0392B', color: '#fff', fontSize: 10, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px',
+                }}>
+                  {nbAlertes > 99 ? '99+' : nbAlertes}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

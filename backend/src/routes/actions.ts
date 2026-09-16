@@ -17,6 +17,7 @@ const actionSchema = z.object({
   responsable: z.string().max(100).optional().nullable(),
   echeance:    z.string().datetime().optional().nullable(),
   estGenerique: z.boolean().optional(),
+  exigenceId:  z.number().int().optional().nullable(),
 });
 
 // GET /api/projets/:projetId/actions
@@ -44,6 +45,7 @@ router.post('/projets/:projetId/actions', requireAuth, ah(async (req: Request, r
       responsable: parsed.data.responsable ?? null,
       echeance:    parsed.data.echeance ? new Date(parsed.data.echeance) : null,
       estGenerique: parsed.data.estGenerique ?? false,
+      exigenceId:  parsed.data.exigenceId ?? null,
     },
   });
   await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'actions_correctives', ligneId: action.id, champModifie: 'création', nouvelleValeur: action.libelle });

@@ -156,7 +156,20 @@ export default function Actions() {
             <tbody>
               {list.map((a) => (
                 <tr key={a.id}>
-                  <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.libelle}</td>
+                  <td style={{ paddingLeft: 20, fontWeight: 500 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>{a.libelle}</span>
+                      {a.exigenceId && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                          background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          AUDIT
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{a.ponderation}%</span>
                   </td>

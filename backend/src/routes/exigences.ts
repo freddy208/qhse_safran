@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { ConformiteAudit } from '@prisma/client';
+import { ConformiteAudit, StatutAction } from '@prisma/client';
 import { z }            from 'zod';
 import { requireAuth }  from '../middleware/auth';
 import { logAudit }     from '../lib/auditLog';
@@ -25,6 +25,12 @@ router.get('/projets/:projetId/exigences', requireAuth, ah(async (req: Request, 
   const projetId = parseId(req.params.projetId, res); if (projetId === null) return;
   const exigences = await prisma.exigenceAudit.findMany({
     where: { projetId },
+    include: {
+      actions: {
+        select: { id: true, libelle: true, statut: true, responsable: true, echeance: true, dateDerniereMaj: true },
+        orderBy: { id: 'asc' },
+      },
+    },
     orderBy: [{ domaine: 'asc' }, { id: 'asc' }],
   });
   return res.json(exigences);
@@ -46,6 +52,7 @@ router.post('/projets/:projetId/exigences', requireAuth, ah(async (req: Request,
       actionAMener:     parsed.data.actionAMener ?? null,
       responsable:      parsed.data.responsable ?? null,
     },
+    include: { actions: { select: { id: true, libelle: true, statut: true, responsable: true, echeance: true, dateDerniereMaj: true } } },
   });
   await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'exigences_audit', ligneId: ex.id, champModifie: 'création', nouvelleValeur: ex.exigence });
   return res.status(201).json(ex);
@@ -60,6 +67,9 @@ router.put('/exigences/:id', requireAuth, ah(async (req: Request, res: Response)
   const parsed = exigenceSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
+  // Set dateAudit whenever conformite is explicitly evaluated
+  const setDateAudit = parsed.data.conformite !== undefined;
+
   const ex = await prisma.exigenceAudit.update({
     where: { id },
     data: {
@@ -70,10 +80,42 @@ router.put('/exigences/:id', requireAuth, ah(async (req: Request, res: Response)
       preuves:          parsed.data.preuves,
       actionAMener:     parsed.data.actionAMener,
       responsable:      parsed.data.responsable,
+      ...(setDateAudit ? { dateAudit: new Date() } : {}),
     },
+    include: { actions: { select: { id: true, libelle: true, statut: true, responsable: true, echeance: true, dateDerniereMaj: true } } },
   });
   await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'exigences_audit', ligneId: id, champModifie: 'conformite', ancienneValeur: avant.conformite ?? null, nouvelleValeur: ex.conformite ?? null });
   return res.json(ex);
+}));
+
+// POST /api/exigences/:id/actions  — create a corrective action linked to this non-conformity
+router.post('/exigences/:id/actions', requireAuth, ah(async (req: Request, res: Response) => {
+  const exigenceId = parseId(req.params.id, res); if (exigenceId === null) return;
+  const exigence = await prisma.exigenceAudit.findUnique({ where: { id: exigenceId } });
+  if (!exigence) return res.status(404).json({ error: 'Exigence introuvable' });
+
+  const schema = z.object({
+    libelle:     z.string().min(1).max(300),
+    responsable: z.string().max(100).optional().nullable(),
+    echeance:    z.string().datetime().optional().nullable(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const action = await prisma.actionCorrective.create({
+    data: {
+      projetId:    exigence.projetId,
+      exigenceId,
+      libelle:     parsed.data.libelle,
+      ponderation: 5,
+      statut:      'NON_DEMARRE' as StatutAction,
+      responsable: parsed.data.responsable ?? null,
+      echeance:    parsed.data.echeance ? new Date(parsed.data.echeance) : null,
+      estGenerique: false,
+    },
+  });
+  await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'actions_correctives', ligneId: action.id, champModifie: 'création depuis exigence', nouvelleValeur: action.libelle });
+  return res.status(201).json(action);
 }));
 
 // DELETE /api/exigences/:id

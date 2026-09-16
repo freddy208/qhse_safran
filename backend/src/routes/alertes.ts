@@ -32,7 +32,7 @@ router.get('/projets/:projetId/alertes', requireAuth, ah(async (req: Request, re
     alertes.push({ type: 'action_corrective', id: ac.id, libelle: ac.libelle, contexte: ac.estGenerique ? 'Action générique' : 'Action spécifique', dateMaj: ac.dateDerniereMaj, retardJ: Math.round((Date.now() - new Date(ac.dateDerniereMaj).getTime()) / 86_400_000) });
   }
 
-  const zones      = await prisma.zone.findMany({ where: { projetId }, include: { armoires: true } });
+  const zones      = await prisma.zone.findMany({ where: { projetId }, include: { armoires: { include: { produits: true } } } });
   const armoireIds = zones.flatMap((z) => z.armoires.map((a) => a.id));
   for (const armoireId of armoireIds) {
     const dernier = await prisma.resultatCritere.findFirst({
@@ -44,8 +44,99 @@ router.get('/projets/:projetId/alertes', requireAuth, ah(async (req: Request, re
     }
   }
 
+  // Produits périmés
+  const now = new Date();
+  for (const z of zones) {
+    for (const a of z.armoires) {
+      for (const p of a.produits) {
+        if (p.datePeremption && new Date(p.datePeremption) < now) {
+          alertes.push({
+            type:    'produit_expire',
+            id:      p.id,
+            libelle: p.nom,
+            contexte: `Périmé le ${new Date(p.datePeremption).toLocaleDateString('fr-FR')} · Armoire "${a.nom}"`,
+            dateMaj: p.dateDerniereMaj,
+            retardJ: Math.round((now.getTime() - new Date(p.datePeremption).getTime()) / 86_400_000),
+          });
+        }
+      }
+    }
+  }
+
+  // Exigences NON-conformes sans action corrective réalisée
+  const exigencesNon = await prisma.exigenceAudit.findMany({
+    where:   { projetId, conformite: 'NON' },
+    include: { actions: { select: { statut: true } } },
+  });
+  for (const ex of exigencesNon) {
+    const hasActionRealisee = ex.actions.some((a) => a.statut === 'REALISE');
+    if (!hasActionRealisee) {
+      alertes.push({
+        type:    'exigence_non',
+        id:      ex.id,
+        libelle: ex.exigence.substring(0, 100),
+        contexte: `Audit · Domaine : ${ex.domaine}`,
+        dateMaj: ex.dateDerniereMaj,
+        retardJ: ex.dateAudit
+          ? Math.round((now.getTime() - new Date(ex.dateAudit).getTime()) / 86_400_000)
+          : 0,
+      });
+    }
+  }
+
   alertes.sort((a, b) => b.retardJ - a.retardJ);
   return res.json({ total: alertes.length, seuil: seuilSemaines, alertes });
+}));
+
+// ── Alertes manuelles CRUD ────────────────────────────────────────────────
+
+// GET /api/projets/:projetId/alertes-manuelles
+router.get('/projets/:projetId/alertes-manuelles', requireAuth, ah(async (req: Request, res: Response) => {
+  const projetId = parseId(req.params.projetId, res); if (projetId === null) return;
+  const list = await prisma.alerte.findMany({
+    where: { projetId },
+    orderBy: [{ statut: 'asc' }, { priorite: 'desc' }, { dateCreation: 'desc' }],
+  });
+  return res.json(list);
+}));
+
+// POST /api/projets/:projetId/alertes-manuelles
+router.post('/projets/:projetId/alertes-manuelles', requireAuth, ah(async (req: Request, res: Response) => {
+  const projetId = parseId(req.params.projetId, res); if (projetId === null) return;
+  const { titre, description, priorite } = req.body;
+  if (!titre?.trim()) return res.status(400).json({ error: 'Le titre est requis.' });
+  const alerte = await prisma.alerte.create({
+    data: { projetId, titre: titre.trim(), description: description?.trim() || null, priorite: priorite || 'MOYENNE' },
+  });
+  return res.status(201).json(alerte);
+}));
+
+// PATCH /api/alertes-manuelles/:id/statut
+router.patch('/alertes-manuelles/:id/statut', requireAuth, ah(async (req: Request, res: Response) => {
+  const id = parseId(req.params.id, res); if (id === null) return;
+  const { statut } = req.body;
+  if (!['OUVERTE', 'EN_COURS', 'RESOLUE'].includes(statut)) return res.status(400).json({ error: 'Statut invalide.' });
+  const alerte = await prisma.alerte.update({ where: { id }, data: { statut } });
+  return res.json(alerte);
+}));
+
+// PUT /api/alertes-manuelles/:id
+router.put('/alertes-manuelles/:id', requireAuth, ah(async (req: Request, res: Response) => {
+  const id = parseId(req.params.id, res); if (id === null) return;
+  const { titre, description, priorite, statut } = req.body;
+  if (!titre?.trim()) return res.status(400).json({ error: 'Le titre est requis.' });
+  const alerte = await prisma.alerte.update({
+    where: { id },
+    data: { titre: titre.trim(), description: description?.trim() || null, priorite, statut },
+  });
+  return res.json(alerte);
+}));
+
+// DELETE /api/alertes-manuelles/:id
+router.delete('/alertes-manuelles/:id', requireAuth, ah(async (req: Request, res: Response) => {
+  const id = parseId(req.params.id, res); if (id === null) return;
+  await prisma.alerte.delete({ where: { id } });
+  return res.status(204).send();
 }));
 
 export default router;

@@ -169,10 +169,12 @@ export const checklistsApi = {
 
 // ── Exigences ─────────────────────────────────────────────────────────────
 export const exigencesApi = {
-  list:   (projetId: number) => api.get<ExigenceAudit[]>(`/projets/${projetId}/exigences`),
-  create: (projetId: number, data: Partial<ExigenceAudit>) => api.post<ExigenceAudit>(`/projets/${projetId}/exigences`, data),
-  update: (id: number, data: Partial<ExigenceAudit>) => api.put<ExigenceAudit>(`/exigences/${id}`, data),
-  delete: (id: number) => api.delete<void>(`/exigences/${id}`),
+  list:         (projetId: number) => api.get<ExigenceAudit[]>(`/projets/${projetId}/exigences`),
+  create:       (projetId: number, data: Partial<ExigenceAudit>) => api.post<ExigenceAudit>(`/projets/${projetId}/exigences`, data),
+  update:       (id: number, data: Partial<ExigenceAudit>) => api.put<ExigenceAudit>(`/exigences/${id}`, data),
+  delete:       (id: number) => api.delete<void>(`/exigences/${id}`),
+  createAction: (exigenceId: number, data: { libelle: string; responsable?: string | null; echeance?: string | null }) =>
+    api.post<ActionCorrective>(`/exigences/${exigenceId}/actions`, data),
 };
 
 // ── Actions correctives ───────────────────────────────────────────────────
@@ -182,6 +184,16 @@ export const actionsApi = {
   update:      (id: number, data: Partial<ActionCorrective>) => api.put<ActionCorrective>(`/actions/${id}`, data),
   patchStatut: (id: number, statut: StatutAction) => api.patch<ActionCorrective>(`/actions/${id}/statut`, { statut }),
   delete:      (id: number) => api.delete<void>(`/actions/${id}`),
+};
+
+// ── Alertes manuelles ─────────────────────────────────────────────────────
+export const alertesManuellesApi = {
+  list:        (projetId: number) => api.get<AlerteManuelle[]>(`/projets/${projetId}/alertes-manuelles`),
+  create:      (projetId: number, data: { titre: string; description?: string; priorite: PrioriteAlerte }) =>
+    api.post<AlerteManuelle>(`/projets/${projetId}/alertes-manuelles`, data),
+  update:      (id: number, data: Partial<AlerteManuelle>) => api.put<AlerteManuelle>(`/alertes-manuelles/${id}`, data),
+  patchStatut: (id: number, statut: StatutAlerte) => api.patch<AlerteManuelle>(`/alertes-manuelles/${id}/statut`, { statut }),
+  delete:      (id: number) => api.delete<void>(`/alertes-manuelles/${id}`),
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -212,9 +224,11 @@ export const commentairesApi = {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────
-export type StatutAction = 'NON_DEMARRE' | 'EN_COURS' | 'REALISE';
-export type ResultatEnum = 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR';
+export type StatutAction    = 'NON_DEMARRE' | 'EN_COURS' | 'REALISE';
+export type ResultatEnum    = 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR';
 export type ConformiteAudit = 'OUI' | 'NON';
+export type PrioriteAlerte  = 'FAIBLE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
+export type StatutAlerte    = 'OUVERTE' | 'EN_COURS' | 'RESOLUE';
 
 export interface User { id: number; nom: string; email: string; role: string; dateCreation?: string; }
 export interface Projet { id: number; nom: string; description?: string; scoreGlobal: number; nbAxes: number; }
@@ -229,9 +243,11 @@ export interface ResultatCritere { id: number; armoireId: number; critereId: num
 export interface Produit { id: number; armoireId: number; nom: string; codeProduit?: string | null; quantitePresente?: number | null; quantiteUtilisee?: number | null; volumeMax?: number | null; datePeremption?: string | null; urlFds?: string | null; fdsDateVerification?: string | null; dateDerniereMaj: string; }
 export interface ConformiteProduit { statut: 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR'; raisons: string[]; }
 export interface ProduitAvecConformite extends Produit { conformite: ConformiteProduit; }
-export interface ExigenceAudit { id: number; projetId: number; domaine: string; exigence: string; questionControle?: string | null; conformite?: ConformiteAudit | null; preuves?: string | null; actionAMener?: string | null; responsable?: string | null; dateDerniereMaj: string; }
-export interface ActionCorrective { id: number; projetId: number; libelle: string; ponderation: number; statut: StatutAction; responsable?: string | null; echeance?: string | null; estGenerique: boolean; dateDerniereMaj: string; }
+export interface ExigenceAudit { id: number; projetId: number; domaine: string; exigence: string; questionControle?: string | null; conformite?: ConformiteAudit | null; preuves?: string | null; actionAMener?: string | null; responsable?: string | null; dateAudit?: string | null; dateDerniereMaj: string; actions?: ActionLinked[]; }
+export interface ActionLinked { id: number; libelle: string; statut: StatutAction; responsable?: string | null; echeance?: string | null; dateDerniereMaj: string; }
+export interface ActionCorrective { id: number; projetId: number; exigenceId?: number | null; libelle: string; ponderation: number; statut: StatutAction; responsable?: string | null; echeance?: string | null; estGenerique: boolean; dateDerniereMaj: string; }
 export interface Commentaire { id: number; texte: string; zoneId?: number | null; axeId?: number | null; auteurId: number; date: string; auteur: { id: number; nom: string }; }
+export interface AlerteManuelle { id: number; projetId: number; titre: string; description?: string | null; priorite: PrioriteAlerte; statut: StatutAlerte; dateCreation: string; dateMaj: string; }
 export interface HistoriqueScore { id: number; projetId: number; axeId?: number | null; score: number; date: string; }
 
 export interface DashboardData {

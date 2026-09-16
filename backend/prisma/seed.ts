@@ -299,7 +299,6 @@ async function main() {
     { domaine: 'Gouvernance', exigence: 'Inventaire produits chimiques', questionControle: 'L\'inventaire des produits chimiques est-il à jour et exhaustif ?', conformite: 'NON' as const },
     { domaine: 'Documentation', exigence: 'FDS disponibles et à jour', questionControle: 'Les FDS sont-elles disponibles et datant de moins de 3 ans pour chaque produit ?', conformite: 'NON' as const },
     { domaine: 'Évaluation des risques', exigence: 'Évaluation risques chimiques', questionControle: 'Une évaluation des risques chimiques a-t-elle été réalisée et mise à jour ?', conformite: null },
-    { domaine: 'Substitution', exigence: 'Plan de substitution Flux H25', questionControle: 'La démarche de substitution du flux H25 est-elle engagée et planifiée ?', conformite: 'NON' as const },
     { domaine: 'Prévention technique', exigence: 'Ventilation et captage à la source', questionControle: 'Les systèmes de ventilation et de captage sont-ils conformes et vérifiés ?', conformite: null },
     { domaine: 'EPI', exigence: 'EPI adaptés aux risques chimiques', questionControle: 'Les EPI adaptés aux produits manipulés sont-ils disponibles et utilisés ?', conformite: null },
     { domaine: 'Formation', exigence: 'Formation opérateurs aux risques chimiques', questionControle: 'Les opérateurs exposés ont-ils été formés aux risques chimiques et à la lecture des FDS ?', conformite: 'NON' as const },

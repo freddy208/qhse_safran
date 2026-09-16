@@ -14,6 +14,19 @@ enum StatutAction {
   REALISE
 }
 
+enum PrioriteAlerte {
+  FAIBLE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+enum StatutAlerte {
+  OUVERTE
+  EN_COURS
+  RESOLUE
+}
+
 enum ResultatEnum {
   CONFORME
   ECART_MINEUR
@@ -49,6 +62,7 @@ model Projet {
   exigencesAudit     ExigenceAudit[]
   actionsCorrectives ActionCorrective[]
   historiqueScores   HistoriqueScore[]
+  alertes            Alerte[]
 
   @@map("projets")
   @@index([nom])
@@ -176,9 +190,11 @@ model ExigenceAudit {
   preuves          String?
   actionAMener     String?
   responsable      String?
+  dateAudit        DateTime?
   dateDerniereMaj  DateTime         @updatedAt
 
-  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  projet  Projet             @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  actions ActionCorrective[]
 
   @@map("exigences_audit")
 }
@@ -186,6 +202,7 @@ model ExigenceAudit {
 model ActionCorrective {
   id              Int          @id @default(autoincrement())
   projetId        Int
+  exigenceId      Int?
   libelle         String
   ponderation     Float
   statut          StatutAction @default(NON_DEMARRE)
@@ -194,11 +211,13 @@ model ActionCorrective {
   estGenerique    Boolean      @default(false)
   dateDerniereMaj DateTime     @updatedAt
 
-  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  projet   Projet         @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  exigence ExigenceAudit? @relation(fields: [exigenceId], references: [id], onDelete: SetNull)
 
   @@map("actions_correctives")
   @@index([projetId])
   @@index([statut])
+  @@index([exigenceId])
 }
 
 model Commentaire {
@@ -231,6 +250,23 @@ model AuditLog {
   @@map("audit_logs")
   @@index([tableConcernee, ligneId])
   @@index([dateHeure])
+}
+
+model Alerte {
+  id           Int            @id @default(autoincrement())
+  projetId     Int
+  titre        String
+  description  String?
+  priorite     PrioriteAlerte @default(MOYENNE)
+  statut       StatutAlerte   @default(OUVERTE)
+  dateCreation DateTime       @default(now())
+  dateMaj      DateTime       @updatedAt
+
+  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@map("alertes")
+  @@index([projetId])
+  @@index([statut])
 }
 
 model HistoriqueScore {
