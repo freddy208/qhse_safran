@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth }    from '../contexts/AuthContext';
 import { useProject } from '../contexts/ProjectContext';
-import { axesApi, zonesApi, actionsApi, exigencesApi, checklistsApi } from '../api/client';
+import { axesApi, zonesApi, actionsApi, exigencesApi, checklistsApi, dashboardApi } from '../api/client';
 
 /* ── SVG Icons ──────────────────────────────────────────────────────────── */
 const IconDashboard = () => (
@@ -65,7 +65,7 @@ const IconQhse = () => (
 );
 
 const NAV: { to: string; label: string; Icon: () => JSX.Element; prefetch?: (id: number) => void }[] = [
-  { to: '/',            label: 'Tableau de bord',    Icon: IconDashboard,  prefetch: (id) => { axesApi.list(id); zonesApi.list(id); actionsApi.list(id); } },
+  { to: '/',            label: 'Tableau de bord',    Icon: IconDashboard,  prefetch: (id) => { dashboardApi.get(id); dashboardApi.historique(id); dashboardApi.alertes(id); } },
   { to: '/axes',        label: 'Suivi des axes',     Icon: IconAxes,       prefetch: (id) => { axesApi.list(id); } },
   { to: '/checklists',  label: 'Checklists',         Icon: IconChecklists, prefetch: (id) => { zonesApi.list(id); checklistsApi.listTypes(); } },
   { to: '/inventaire',  label: 'Inventaire',         Icon: IconInventaire, prefetch: (id) => { zonesApi.list(id); } },

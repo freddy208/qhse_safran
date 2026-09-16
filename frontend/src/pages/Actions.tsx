@@ -1,14 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
 import { actionsApi, ActionCorrective, StatutAction } from '../api/client';
 import { StatutSelect } from '../components/StatusBadge';
+
+const IconTrash = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+  </svg>
+);
+const IconPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const STATUTS: StatutAction[] = ['NON_DEMARRE', 'EN_COURS', 'REALISE'];
 
 export default function Actions() {
   const { projetActif } = useProject();
   const [actions,  setActions]  = useState<ActionCorrective[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [modifId,  setModifId]  = useState<number | null>(null);
+  const [busy,     setBusy]     = useState(false);
+  const [err,      setErr]      = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ libelle: '', ponderation: '10', statut: 'NON_DEMARRE' as StatutAction, responsable: '', echeance: '', estGenerique: false });
 
   const charger = async () => {
     if (!projetActif) return;
@@ -23,6 +41,30 @@ export default function Actions() {
     setModifId(id);
     try { await actionsApi.patchStatut(id, statut); await charger(); }
     finally { setModifId(null); }
+  };
+
+  const creerAction = async (e: FormEvent) => {
+    e.preventDefault(); setErr(null); setBusy(true);
+    try {
+      await actionsApi.create(projetActif!.id, {
+        libelle: form.libelle,
+        ponderation: parseFloat(form.ponderation),
+        statut: form.statut,
+        responsable: form.responsable || undefined,
+        echeance: form.echeance ? new Date(form.echeance).toISOString() : undefined,
+        estGenerique: form.estGenerique,
+      });
+      setForm({ libelle: '', ponderation: '10', statut: 'NON_DEMARRE', responsable: '', echeance: '', estGenerique: false });
+      setShowForm(false);
+      await charger();
+    } catch (ex: unknown) { setErr((ex as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const supprimerAction = async (id: number) => {
+    if (!confirm('Supprimer cette action spécifique ?')) return;
+    await actionsApi.delete(id);
+    await charger();
   };
 
   const generiques  = actions.filter((a) => a.estGenerique);
@@ -51,7 +93,7 @@ export default function Actions() {
     </Layout>
   );
 
-  const renderTable = (list: ActionCorrective[], titre: string, showScore: boolean) => (
+  const renderTable = (list: ActionCorrective[], titre: string, showScore: boolean, allowDelete: boolean) => (
     <div className="card mb-16">
       <div className="card-header">
         <span className="card-title">{titre}</span>
@@ -74,6 +116,7 @@ export default function Actions() {
                 <th>Responsable</th>
                 <th style={{ width: 110 }}>Échéance</th>
                 <th style={{ width: 110 }}>Dernière MAJ</th>
+                {allowDelete && <th style={{ width: 46 }}></th>}
               </tr>
             </thead>
             <tbody>
@@ -112,6 +155,13 @@ export default function Actions() {
                   <td style={{ fontSize: 12, color: 'var(--gray-400)' }}>
                     {new Date(a.dateDerniereMaj).toLocaleDateString('fr-FR')}
                   </td>
+                  {allowDelete && (
+                    <td>
+                      <button className="btn-icon" title="Supprimer" onClick={() => supprimerAction(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}>
+                        <IconTrash />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -122,7 +172,71 @@ export default function Actions() {
   );
 
   return (
-    <Layout title="Actions correctives" subtitle={projetActif?.nom}>
+    <Layout
+      title="Actions correctives"
+      subtitle={projetActif?.nom}
+      actions={
+        <button className="btn btn-primary btn-sm" onClick={() => setShowForm((v) => !v)}>
+          <IconPlus /> Nouvelle action
+        </button>
+      }
+    >
+      {/* Formulaire création */}
+      {showForm && (
+        <div className="card mb-16" style={{ padding: '16px 20px' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Créer une action corrective</div>
+          {err && <div className="alert alert-danger" style={{ marginBottom: 10 }}>{err}</div>}
+          <form onSubmit={creerAction}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, marginBottom: 8 }}>
+              <input
+                placeholder="Libellé de l'action *"
+                required
+                value={form.libelle}
+                onChange={(e) => setForm((f) => ({ ...f, libelle: e.target.value }))}
+                style={{ fontSize: 13 }}
+              />
+              <input
+                type="number" min="0" max="100" step="0.1"
+                placeholder="Poids %"
+                required
+                value={form.ponderation}
+                onChange={(e) => setForm((f) => ({ ...f, ponderation: e.target.value }))}
+                style={{ width: 90, fontSize: 13 }}
+              />
+              <select value={form.statut} onChange={(e) => setForm((f) => ({ ...f, statut: e.target.value as StatutAction }))} style={{ fontSize: 13 }}>
+                {STATUTS.map((s) => <option key={s} value={s}>{s === 'NON_DEMARRE' ? 'Non démarré' : s === 'EN_COURS' ? 'En cours' : 'Réalisé'}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
+              <input
+                placeholder="Responsable (optionnel)"
+                value={form.responsable}
+                onChange={(e) => setForm((f) => ({ ...f, responsable: e.target.value }))}
+                style={{ fontSize: 13 }}
+              />
+              <input
+                type="date"
+                value={form.echeance}
+                onChange={(e) => setForm((f) => ({ ...f, echeance: e.target.value }))}
+                style={{ fontSize: 13 }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, whiteSpace: 'nowrap' }}>
+                <input type="checkbox" checked={form.estGenerique} onChange={(e) => setForm((f) => ({ ...f, estGenerique: e.target.checked }))} />
+                Action générique
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+                {busy ? 'Création…' : 'Créer'}
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowForm(false); setErr(null); }}>
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="alert alert-warning" style={{ marginBottom: 20 }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -130,8 +244,8 @@ export default function Actions() {
         </svg>
         Les <strong>actions génériques</strong> constituent un indicateur de processus indépendant. Leur avancement n'est pas inclus dans le score global du projet.
       </div>
-      {renderTable(generiques,  'Actions génériques — Processus de traitement des écarts', true)}
-      {renderTable(specifiques, 'Actions spécifiques', false)}
+      {renderTable(generiques,  'Actions génériques — Processus de traitement des écarts', true, false)}
+      {renderTable(specifiques, 'Actions spécifiques', false, true)}
     </Layout>
   );
 }

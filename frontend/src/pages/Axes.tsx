@@ -19,6 +19,12 @@ const IconSend = () => (
     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
   </svg>
 );
+const IconTrash = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+  </svg>
+);
 
 export default function Axes() {
   const { projetActif } = useProject();
@@ -67,6 +73,12 @@ export default function Axes() {
     if (!texte) return;
     await commentairesApi.create({ texte, axeId });
     setNouveauComm((prev) => ({ ...prev, [axeId]: '' }));
+    await chargerCommentaires(axeId);
+  };
+
+  const supprimerCommentaire = async (commId: number, axeId: number) => {
+    if (!confirm('Supprimer ce commentaire ?')) return;
+    await commentairesApi.delete(commId);
     await chargerCommentaires(axeId);
   };
 
@@ -245,12 +257,22 @@ export default function Axes() {
                   {(commentaires[axe.id] ?? []).length > 0 && (
                     <div className="comment-list">
                       {(commentaires[axe.id] ?? []).map((c) => (
-                        <div key={c.id} className="comment-item">
-                          <div className="comment-meta">
-                            <span className="comment-author">{c.auteur.nom}</span>
-                            <span className="comment-date">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                        <div key={c.id} className="comment-item" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div className="comment-meta">
+                              <span className="comment-author">{c.auteur.nom}</span>
+                              <span className="comment-date">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                            </div>
+                            <div className="comment-text">{c.texte}</div>
                           </div>
-                          <div className="comment-text">{c.texte}</div>
+                          <button
+                            className="btn-icon"
+                            title="Supprimer ce commentaire"
+                            onClick={() => supprimerCommentaire(c.id, axe.id)}
+                            style={{ color: '#C0392B', borderColor: '#fca5a5', flexShrink: 0, marginTop: 2 }}
+                          >
+                            <IconTrash />
+                          </button>
                         </div>
                       ))}
                     </div>

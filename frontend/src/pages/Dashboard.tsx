@@ -43,6 +43,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!projetActif) return;
     setLoading(true);
+    setData(null); setHistorique([]); setAlertes(null);
     try {
       const [d, h, a] = await Promise.all([
         dashboardApi.get(projetActif.id),
