@@ -99,6 +99,65 @@ export default function Exigences() {
         </div>
       </div>
 
+      {/* Modal édition exigence */}
+      {editId !== null && (
+        <div className="modal-overlay" onClick={() => { setEditId(null); setErr(null); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Renseigner l'exigence</div>
+              <button className="btn-icon" onClick={() => { setEditId(null); setErr(null); }}>✕</button>
+            </div>
+            <form onSubmit={sauvegarder}>
+              <div className="modal-body">
+                {err && <div className="alert alert-error" style={{ marginBottom: 14 }}>{err}</div>}
+                <div className="form-group">
+                  <label>Conformité</label>
+                  <select
+                    value={editForm.conformite ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, conformite: (e.target.value as ConformiteAudit) || null as never }))}
+                  >
+                    <option value="">Non renseigné</option>
+                    <option value="OUI">Conforme (Oui)</option>
+                    <option value="NON">Non conforme (Non)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Preuves / Observations</label>
+                  <input
+                    type="text"
+                    value={editForm.preuves ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, preuves: e.target.value }))}
+                    placeholder="Document, référence, observation…"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Action à mener</label>
+                  <input
+                    type="text"
+                    value={editForm.actionAMener ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, actionAMener: e.target.value }))}
+                    placeholder="Action corrective à engager…"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <input
+                    type="text"
+                    value={editForm.responsable ?? ''}
+                    onChange={(e) => setEditForm((p) => ({ ...p, responsable: e.target.value }))}
+                    placeholder="Nom du responsable…"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => { setEditId(null); setErr(null); }}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ── Exigences par domaine ─────────────────────────────────── */}
       {Object.entries(parDomaine).map(([domaine, exList]) => {
         const confDomaine = exList.filter((e) => e.conformite === 'OUI').length;
@@ -131,72 +190,23 @@ export default function Exigences() {
                   </tr>
                 </thead>
                 <tbody>
-                  {exList.map((ex) =>
-                    editId === ex.id ? (
-                      <tr key={ex.id} style={{ background: 'var(--blue-50)' }}>
-                        <td colSpan={7} style={{ padding: '14px 20px' }}>
-                          <form onSubmit={sauvegarder}>
-                            {err && <div className="alert alert-error mb-12">{err}</div>}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr auto', gap: '0 14px' }}>
-                              <div className="form-group">
-                                <label>Conformité</label>
-                                <select
-                                  value={editForm.conformite ?? ''}
-                                  style={{ width: 160 }}
-                                  onChange={(e) => setEditForm((p) => ({ ...p, conformite: (e.target.value as ConformiteAudit) || null as never }))}
-                                >
-                                  <option value="">Non renseigné</option>
-                                  <option value="OUI">Conforme (Oui)</option>
-                                  <option value="NON">Non conforme (Non)</option>
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label>Preuves / Observations</label>
-                                <input type="text" value={editForm.preuves ?? ''}
-                                  onChange={(e) => setEditForm((p) => ({ ...p, preuves: e.target.value }))}
-                                  placeholder="Document, référence, observation…"
-                                />
-                              </div>
-                              <div className="form-group">
-                                <label>Action à mener</label>
-                                <input type="text" value={editForm.actionAMener ?? ''}
-                                  onChange={(e) => setEditForm((p) => ({ ...p, actionAMener: e.target.value }))}
-                                  placeholder="Action corrective…"
-                                />
-                              </div>
-                              <div className="form-group">
-                                <label>Responsable</label>
-                                <input type="text" value={editForm.responsable ?? ''}
-                                  style={{ width: 130 }}
-                                  onChange={(e) => setEditForm((p) => ({ ...p, responsable: e.target.value }))}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-8 mt-12">
-                              <button type="submit" className="btn btn-primary btn-sm">Sauvegarder</button>
-                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditId(null)}>Annuler</button>
-                            </div>
-                          </form>
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={ex.id} style={{ background: ex.conformite === 'NON' ? 'var(--red-50)' : undefined }}>
-                        <td style={{ paddingLeft: 20, fontWeight: 600, fontSize: 13.5 }}>{ex.exigence}</td>
-                        <td style={{ color: 'var(--gray-600)', fontSize: 13 }}>{ex.questionControle ?? <span className="text-muted">—</span>}</td>
-                        <td>
-                          {ex.conformite
-                            ? <span className={`badge ${CONF_CLS[ex.conformite]}`}>{CONF_LABEL[ex.conformite]}</span>
-                            : <span style={{ fontSize: 12, color: 'var(--gray-400)', fontStyle: 'italic' }}>À saisir</span>}
-                        </td>
-                        <td style={{ fontSize: 13 }}>{ex.preuves ?? <span className="text-muted">—</span>}</td>
-                        <td style={{ fontSize: 13 }}>{ex.actionAMener ?? <span className="text-muted">—</span>}</td>
-                        <td style={{ fontSize: 13 }}>{ex.responsable ?? <span className="text-muted">—</span>}</td>
-                        <td>
-                          <button className="btn-icon" title="Renseigner" onClick={() => ouvrir(ex)}><IconEdit /></button>
-                        </td>
-                      </tr>
-                    )
-                  )}
+                  {exList.map((ex) => (
+                    <tr key={ex.id} style={{ background: ex.conformite === 'NON' ? 'var(--red-50)' : undefined }}>
+                      <td style={{ paddingLeft: 20, fontWeight: 600, fontSize: 13.5 }}>{ex.exigence}</td>
+                      <td style={{ color: 'var(--gray-600)', fontSize: 13 }}>{ex.questionControle ?? <span className="text-muted">—</span>}</td>
+                      <td>
+                        {ex.conformite
+                          ? <span className={`badge ${CONF_CLS[ex.conformite]}`}>{CONF_LABEL[ex.conformite]}</span>
+                          : <span style={{ fontSize: 12, color: 'var(--gray-400)', fontStyle: 'italic' }}>À saisir</span>}
+                      </td>
+                      <td style={{ fontSize: 13 }}>{ex.preuves ?? <span className="text-muted">—</span>}</td>
+                      <td style={{ fontSize: 13 }}>{ex.actionAMener ?? <span className="text-muted">—</span>}</td>
+                      <td style={{ fontSize: 13 }}>{ex.responsable ?? <span className="text-muted">—</span>}</td>
+                      <td>
+                        <button className="btn-icon" title="Renseigner" onClick={() => ouvrir(ex)}><IconEdit /></button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
