@@ -140,10 +140,19 @@ export const armoiresApi = {
   delete: (id: number) => api.delete<void>(`/armoires/${id}`),
 };
 
+export interface ProduitPage {
+  data:  ProduitAvecConformite[];
+  total: number;
+  page:  number;
+  pages: number;
+  limit: number;
+}
+
+const PRODUITS_LIMIT = 50;
+
 export const produitsApi = {
-  list:   (armoireId: number) =>
-    api.get<{ data: ProduitAvecConformite[]; total: number; page: number; pages: number }>(`/armoires/${armoireId}/produits`)
-       .then((r) => r.data),
+  list:   (armoireId: number, page = 1) =>
+    api.get<ProduitPage>(`/armoires/${armoireId}/produits?page=${page}&limit=${PRODUITS_LIMIT}`),
   create: (armoireId: number, data: Partial<Produit>) => api.post<ProduitAvecConformite>(`/armoires/${armoireId}/produits`, data),
   update: (id: number, data: Partial<Produit>) => api.put<ProduitAvecConformite>(`/produits/${id}`, data),
   delete: (id: number) => api.delete<void>(`/produits/${id}`),

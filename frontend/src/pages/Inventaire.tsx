@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
-import { zonesApi, armoiresApi, produitsApi, exportApi, Zone, ProduitAvecConformite } from '../api/client';
+import { zonesApi, armoiresApi, produitsApi, exportApi, Zone, ProduitAvecConformite, ProduitPage } from '../api/client';
 import { ConformiteBadge } from '../components/StatusBadge';
 import { useToast } from '../contexts/ToastContext';
 
@@ -44,6 +44,8 @@ export default function Inventaire() {
   const [zoneId,    setZoneId]    = useState<number | null>(null);
   const [armoireId, setArmoireId] = useState<number | null>(null);
   const [produits,  setProduits]  = useState<ProduitAvecConformite[]>([]);
+  const [pagination, setPagination] = useState<Omit<ProduitPage, 'data'> | null>(null);
+  const [page,      setPage]      = useState(1);
   const [modal,     setModal]     = useState<'create' | 'edit' | null>(null);
   const [form,      setForm]      = useState<ProduitForm>(FORM_VIDE);
   const [editId,    setEditId]    = useState<number | null>(null);
@@ -64,15 +66,25 @@ export default function Inventaire() {
   useEffect(() => {
     const zone = zones.find((z) => z.id === zoneId);
     const arm  = zone?.armoires?.[0];
+    setPage(1);
     setArmoireId(arm ? arm.id : null);
   }, [zoneId, zones]);
 
   useEffect(() => {
-    if (!armoireId) { setProduits([]); return; }
-    produitsApi.list(armoireId).then(setProduits);
-  }, [armoireId]);
+    if (!armoireId) { setProduits([]); setPagination(null); return; }
+    produitsApi.list(armoireId, page).then(({ data, ...meta }) => {
+      setProduits(data);
+      setPagination(meta);
+    });
+  }, [armoireId, page]);
 
-  const refresh = () => { if (armoireId) produitsApi.list(armoireId).then(setProduits); };
+  const refresh = () => {
+    if (!armoireId) return;
+    produitsApi.list(armoireId, page).then(({ data, ...meta }) => {
+      setProduits(data);
+      setPagination(meta);
+    });
+  };
 
   const ouvrirCreation = () => { setForm(FORM_VIDE); setEditId(null); setErr(null); setModal('create'); };
   const ouvrirEdition  = (p: ProduitAvecConformite) => {
@@ -195,12 +207,15 @@ export default function Inventaire() {
           </div>
           <div className="form-group" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
             <label>Armoire</label>
-            <select value={armoireId ?? ''} onChange={(e) => setArmoireId(Number(e.target.value))}>
+            <select value={armoireId ?? ''} onChange={(e) => { setPage(1); setArmoireId(Number(e.target.value)); }}>
               {armoires.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
             </select>
           </div>
-          {produits.length > 0 && (
-            <div className="flex items-center gap-12" style={{ paddingBottom: 0, paddingTop: 20 }}>
+          {pagination && pagination.total > 0 && (
+            <div className="flex items-center gap-12" style={{ paddingBottom: 0, paddingTop: 20, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
+                <strong style={{ color: 'var(--gray-800)' }}>{pagination.total}</strong> produit{pagination.total > 1 ? 's' : ''} au total
+              </span>
               <span className="badge badge-conforme">{nbConformes} conforme{nbConformes !== 1 ? 's' : ''}</span>
               {nbEcarts > 0 && (
                 <span className="badge badge-majeur">{nbEcarts} écart{nbEcarts !== 1 ? 's' : ''}</span>
@@ -279,6 +294,31 @@ export default function Inventaire() {
           </div>
         )}
       </div>
+
+      {/* ── Pagination ───────────────────────────────────────────── */}
+      {pagination && pagination.pages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16, marginBottom: 4 }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            ← Précédent
+          </button>
+          <span style={{ fontSize: 13, color: 'var(--gray-600)' }}>
+            Page <strong>{pagination.page}</strong> / {pagination.pages}
+            &nbsp;·&nbsp;
+            {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total}
+          </span>
+          <button
+            className="btn btn-secondary btn-sm"
+            disabled={page >= pagination.pages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Suivant →
+          </button>
+        </div>
+      )}
 
       {/* ── Modal ────────────────────────────────────────────────── */}
       {modal && (
