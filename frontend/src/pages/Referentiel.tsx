@@ -18,16 +18,6 @@ const IconEdit = () => (
     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
   </svg>
 );
-const IconCheck = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconX = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
 
 export default function Referentiel() {
   const { projetActif, refreshProjets } = useProject();
@@ -118,7 +108,7 @@ export default function Referentiel() {
   return (
     <Layout
       title="Référentiel"
-      subtitle={`Configuration des axes, zones et armoires — ${projetActif?.nom ?? ''}`}
+      subtitle={projetActif?.nom ?? ''}
     >
       {/* ── Tabs ─────────────────────────────────────────────────── */}
       <div className="tabs">
@@ -206,27 +196,15 @@ export default function Referentiel() {
           {axes.map((axe) => (
             <div key={axe.id} className="card mb-12">
               <div className="card-header">
-                {editAxeId === axe.id ? (
-                  <form onSubmit={sauvegarderAxe} style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1 }}>
-                    <input type="text" required value={editAxeForm.code} onChange={(e) => setEditAxeForm((p) => ({ ...p, code: e.target.value }))} placeholder="Code" style={{ width: 80, height: 30, fontSize: 13 }} />
-                    <input type="text" required value={editAxeForm.intitule} onChange={(e) => setEditAxeForm((p) => ({ ...p, intitule: e.target.value }))} placeholder="Intitulé" style={{ flex: 1, height: 30, fontSize: 13 }} />
-                    <input type="number" required min="0" max="100" step="0.1" value={editAxeForm.ponderation} onChange={(e) => setEditAxeForm((p) => ({ ...p, ponderation: e.target.value }))} placeholder="%" style={{ width: 70, height: 30, fontSize: 13 }} />
-                    <button type="submit" className="btn-icon" disabled={busy} style={{ color: '#2E7D32', borderColor: '#bbf7d0' }}><IconCheck /></button>
-                    <button type="button" className="btn-icon" onClick={() => setEditAxeId(null)} style={{ color: '#6B7280', borderColor: '#e5e7eb' }}><IconX /></button>
-                  </form>
-                ) : (
-                  <div className="flex items-center gap-10">
-                    <span className="axe-code-chip">{axe.code}</span>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{axe.intitule}</span>
-                    <span style={{ fontSize: 12, color: 'var(--gray-400)', fontWeight: 400 }}>— {axe.ponderation}%</span>
-                  </div>
-                )}
-                {editAxeId !== axe.id && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditAxe(axe)} style={{ color: '#0055A4', borderColor: '#bfdbfe' }}><IconEdit /></button>
-                    <button className="btn btn-danger btn-xs" onClick={() => suppAxe(axe.id)}><IconTrash /> Supprimer</button>
-                  </div>
-                )}
+                <div className="flex items-center gap-10">
+                  <span className="axe-code-chip">{axe.code}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{axe.intitule}</span>
+                  <span style={{ fontSize: 12, color: 'var(--gray-400)', fontWeight: 400 }}>({axe.ponderation}%)</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditAxe(axe)} style={{ color: '#0055A4', borderColor: '#bfdbfe' }}><IconEdit /></button>
+                  <button className="btn btn-danger btn-xs" onClick={() => suppAxe(axe.id)}><IconTrash /> Supprimer</button>
+                </div>
               </div>
               <div className="table-wrapper">
                 <table>
@@ -241,35 +219,20 @@ export default function Referentiel() {
                   </thead>
                   <tbody>
                     {(axe.sousActions ?? []).map((sa: SousAction) => (
-                      editSaId === sa.id ? (
-                        <tr key={sa.id} style={{ background: 'var(--blue-50)' }}>
-                          <td colSpan={5} style={{ padding: '10px 20px' }}>
-                            <form onSubmit={sauvegarderSA} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <input type="text" required value={editSaForm.libelle} onChange={(e) => setEditSaForm((p) => ({ ...p, libelle: e.target.value }))} placeholder="Libellé" style={{ flex: 2, minWidth: 180, height: 30, fontSize: 13 }} />
-                              <input type="number" required min="0" max="100" step="0.1" value={editSaForm.ponderationDansAxe} onChange={(e) => setEditSaForm((p) => ({ ...p, ponderationDansAxe: e.target.value }))} placeholder="Poids%" style={{ width: 80, height: 30, fontSize: 13 }} />
-                              <input type="text" value={editSaForm.responsable} onChange={(e) => setEditSaForm((p) => ({ ...p, responsable: e.target.value }))} placeholder="Responsable" style={{ flex: 1, minWidth: 120, height: 30, fontSize: 13 }} />
-                              <input type="date" value={editSaForm.echeance} onChange={(e) => setEditSaForm((p) => ({ ...p, echeance: e.target.value }))} style={{ width: 130, height: 30, fontSize: 13 }} />
-                              <button type="submit" className="btn-icon" disabled={busy} style={{ color: '#2E7D32', borderColor: '#bbf7d0' }}><IconCheck /></button>
-                              <button type="button" className="btn-icon" onClick={() => setEditSaId(null)} style={{ color: '#6B7280', borderColor: '#e5e7eb' }}><IconX /></button>
-                            </form>
-                          </td>
-                        </tr>
-                      ) : (
-                        <tr key={sa.id}>
-                          <td style={{ paddingLeft: 20 }}>{sa.libelle}</td>
-                          <td><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{sa.ponderationDansAxe}%</span></td>
-                          <td style={{ fontSize: 13 }}>{sa.responsable ?? <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>—</span>}</td>
-                          <td style={{ fontSize: 13 }}>
-                            {sa.echeance
-                              ? <span style={{ color: new Date(sa.echeance) < new Date() ? '#C0392B' : 'inherit', fontWeight: new Date(sa.echeance) < new Date() ? 600 : 400 }}>{new Date(sa.echeance).toLocaleDateString('fr-FR')}</span>
-                              : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>—</span>}
-                          </td>
-                          <td style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditSA(sa)} style={{ color: '#0055A4', borderColor: '#bfdbfe' }}><IconEdit /></button>
-                            <button className="btn-icon" title="Supprimer" onClick={() => suppSA(sa.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
-                          </td>
-                        </tr>
-                      )
+                      <tr key={sa.id}>
+                        <td style={{ paddingLeft: 20 }}>{sa.libelle}</td>
+                        <td><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{sa.ponderationDansAxe}%</span></td>
+                        <td style={{ fontSize: 13 }}>{sa.responsable ?? <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>—</span>}</td>
+                        <td style={{ fontSize: 13 }}>
+                          {sa.echeance
+                            ? <span style={{ color: new Date(sa.echeance) < new Date() ? '#C0392B' : 'inherit', fontWeight: new Date(sa.echeance) < new Date() ? 600 : 400 }}>{new Date(sa.echeance).toLocaleDateString('fr-FR')}</span>
+                            : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>—</span>}
+                        </td>
+                        <td style={{ display: 'flex', gap: 4 }}>
+                          <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditSA(sa)} style={{ color: '#0055A4', borderColor: '#bfdbfe' }}><IconEdit /></button>
+                          <button className="btn-icon" title="Supprimer" onClick={() => suppSA(sa.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
+                        </td>
+                      </tr>
                     ))}
                     {(!axe.sousActions || axe.sousActions.length === 0) && (
                       <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--gray-400)', fontStyle: 'italic', paddingLeft: 20 }}>Aucune sous-action</td></tr>
@@ -327,21 +290,11 @@ export default function Referentiel() {
           {zones.map((zone) => (
             <div key={zone.id} className="card mb-12">
               <div className="card-header">
-                {editZoneId === zone.id ? (
-                  <form onSubmit={sauvegarderZone} style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1 }}>
-                    <input value={editZoneNom} onChange={(e) => setEditZoneNom(e.target.value)} placeholder="Nom de la zone" required style={{ flex: 1, fontSize: 13 }} />
-                    <button type="submit" className="btn-icon" title="Sauvegarder" disabled={busy} style={{ color: '#16a34a', borderColor: '#86efac' }}><IconCheck /></button>
-                    <button type="button" className="btn-icon" title="Annuler" onClick={() => setEditZoneId(null)} style={{ color: '#6b7280', borderColor: '#d1d5db' }}><IconX /></button>
-                  </form>
-                ) : (
-                  <>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>Zone : {zone.nom}</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditZone(zone)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
-                      <button className="btn btn-danger btn-xs" onClick={() => suppZone(zone.id)}><IconTrash /> Supprimer</button>
-                    </div>
-                  </>
-                )}
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Zone : {zone.nom}</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditZone(zone)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
+                  <button className="btn btn-danger btn-xs" onClick={() => suppZone(zone.id)}><IconTrash /> Supprimer</button>
+                </div>
               </div>
               <div className="table-wrapper">
                 <table>
@@ -354,25 +307,13 @@ export default function Referentiel() {
                   <tbody>
                     {(zone.armoires ?? []).map((a) => (
                       <tr key={a.id}>
-                        {editArmoireId === a.id ? (
-                          <td colSpan={2} style={{ paddingLeft: 20 }}>
-                            <form onSubmit={sauvegarderArmoire} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                              <input value={editArmoireNom} onChange={(e) => setEditArmoireNom(e.target.value)} placeholder="Nom de l'armoire" required style={{ flex: 1, fontSize: 13 }} />
-                              <button type="submit" className="btn-icon" title="Sauvegarder" disabled={busy} style={{ color: '#16a34a', borderColor: '#86efac' }}><IconCheck /></button>
-                              <button type="button" className="btn-icon" title="Annuler" onClick={() => setEditArmoireId(null)} style={{ color: '#6b7280', borderColor: '#d1d5db' }}><IconX /></button>
-                            </form>
-                          </td>
-                        ) : (
-                          <>
-                            <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.nom}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                                <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditArmoire(a)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
-                                <button className="btn-icon" title="Supprimer" onClick={() => suppArmoire(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
-                              </div>
-                            </td>
-                          </>
-                        )}
+                        <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.nom}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                            <button className="btn-icon" title="Modifier" onClick={() => ouvrirEditArmoire(a)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
+                            <button className="btn-icon" title="Supprimer" onClick={() => suppArmoire(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     {(!zone.armoires || zone.armoires.length === 0) && (
@@ -384,6 +325,130 @@ export default function Referentiel() {
             </div>
           ))}
         </>
+      )}
+
+      {/* Modal édition axe */}
+      {editAxeId !== null && (
+        <div className="modal-overlay" onClick={() => setEditAxeId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Modifier l'axe</div>
+              <button className="btn-icon" onClick={() => setEditAxeId(null)}>✕</button>
+            </div>
+            <form onSubmit={sauvegarderAxe}>
+              <div className="modal-body">
+                {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '0 16px' }}>
+                  <div className="form-group">
+                    <label>Code *</label>
+                    <input type="text" required value={editAxeForm.code} onChange={(e) => setEditAxeForm((p) => ({ ...p, code: e.target.value }))} placeholder="AXE1" />
+                  </div>
+                  <div className="form-group">
+                    <label>Intitulé *</label>
+                    <input type="text" required value={editAxeForm.intitule} onChange={(e) => setEditAxeForm((p) => ({ ...p, intitule: e.target.value }))} placeholder="Intitulé de l'axe…" />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Pondération (%)</label>
+                  <input type="number" min="0" max="100" step="0.1" required value={editAxeForm.ponderation} onChange={(e) => setEditAxeForm((p) => ({ ...p, ponderation: e.target.value }))} placeholder="10" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditAxeId(null)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal édition sous-action */}
+      {editSaId !== null && (
+        <div className="modal-overlay" onClick={() => setEditSaId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Modifier la sous-action</div>
+              <button className="btn-icon" onClick={() => setEditSaId(null)}>✕</button>
+            </div>
+            <form onSubmit={sauvegarderSA}>
+              <div className="modal-body">
+                {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                <div className="form-group">
+                  <label>Libellé *</label>
+                  <input type="text" required value={editSaForm.libelle} onChange={(e) => setEditSaForm((p) => ({ ...p, libelle: e.target.value }))} placeholder="Libellé de la sous-action…" />
+                </div>
+                <div className="form-group">
+                  <label>Poids dans l'axe (%)</label>
+                  <input type="number" min="0" max="100" step="0.1" required value={editSaForm.ponderationDansAxe} onChange={(e) => setEditSaForm((p) => ({ ...p, ponderationDansAxe: e.target.value }))} placeholder="20" />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                  <div className="form-group">
+                    <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                    <input type="text" value={editSaForm.responsable} onChange={(e) => setEditSaForm((p) => ({ ...p, responsable: e.target.value }))} placeholder="Nom du responsable…" />
+                  </div>
+                  <div className="form-group">
+                    <label>Échéance <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                    <input type="date" value={editSaForm.echeance} onChange={(e) => setEditSaForm((p) => ({ ...p, echeance: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditSaId(null)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal édition zone */}
+      {editZoneId !== null && (
+        <div className="modal-overlay" onClick={() => setEditZoneId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Modifier la zone</div>
+              <button className="btn-icon" onClick={() => setEditZoneId(null)}>✕</button>
+            </div>
+            <form onSubmit={sauvegarderZone}>
+              <div className="modal-body">
+                {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                <div className="form-group">
+                  <label>Nom de la zone *</label>
+                  <input type="text" required value={editZoneNom} onChange={(e) => setEditZoneNom(e.target.value)} placeholder="Ex : ICLC, Atelier Est…" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditZoneId(null)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal édition armoire */}
+      {editArmoireId !== null && (
+        <div className="modal-overlay" onClick={() => setEditArmoireId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Modifier l'armoire</div>
+              <button className="btn-icon" onClick={() => setEditArmoireId(null)}>✕</button>
+            </div>
+            <form onSubmit={sauvegarderArmoire}>
+              <div className="modal-body">
+                {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                <div className="form-group">
+                  <label>Nom de l'armoire *</label>
+                  <input type="text" required value={editArmoireNom} onChange={(e) => setEditArmoireNom(e.target.value)} placeholder="Ex : Armoire 1, Casier Sud…" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditArmoireId(null)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </Layout>
   );

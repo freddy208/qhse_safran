@@ -74,7 +74,7 @@ export default function Exigences() {
   return (
     <Layout
       title="Audit référentiel PRO0239"
-      subtitle={`Safran HSE – Standard Risque Chimique 4.06 — ${projetActif?.nom ?? ''}`}
+      subtitle={projetActif?.nom ?? ''}
     >
       {/* ── KPI ──────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
@@ -145,7 +145,7 @@ export default function Exigences() {
                                   style={{ width: 160 }}
                                   onChange={(e) => setEditForm((p) => ({ ...p, conformite: (e.target.value as ConformiteAudit) || null as never }))}
                                 >
-                                  <option value="">— Non renseigné —</option>
+                                  <option value="">Non renseigné</option>
                                   <option value="OUI">Conforme (Oui)</option>
                                   <option value="NON">Non conforme (Non)</option>
                                 </select>

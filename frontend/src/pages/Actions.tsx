@@ -22,16 +22,6 @@ const IconEdit = () => (
     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
   </svg>
 );
-const IconCheck = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconX = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
 
 const STATUTS: StatutAction[] = ['NON_DEMARRE', 'EN_COURS', 'REALISE'];
 
@@ -164,90 +154,51 @@ export default function Actions() {
               </tr>
             </thead>
             <tbody>
-              {list.map((a) =>
-                editId === a.id ? (
-                  <tr key={a.id} style={{ background: 'var(--blue-50)' }}>
-                    <td colSpan={7} style={{ padding: '10px 20px' }}>
-                      {err && <div className="alert alert-danger" style={{ marginBottom: 8, fontSize: 12 }}>{err}</div>}
-                      <form onSubmit={sauvegarderEdit} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
-                          required
-                          placeholder="Libellé *"
-                          value={editForm.libelle}
-                          onChange={(e) => setEditForm((f) => ({ ...f, libelle: e.target.value }))}
-                          style={{ flex: 2, minWidth: 180, fontSize: 13 }}
-                        />
-                        <input
-                          type="number" min="0" max="100" step="0.1"
-                          required
-                          placeholder="Poids %"
-                          value={editForm.ponderation}
-                          onChange={(e) => setEditForm((f) => ({ ...f, ponderation: e.target.value }))}
-                          style={{ width: 80, fontSize: 13 }}
-                        />
-                        <input
-                          placeholder="Responsable"
-                          value={editForm.responsable}
-                          onChange={(e) => setEditForm((f) => ({ ...f, responsable: e.target.value }))}
-                          style={{ flex: 1, minWidth: 120, fontSize: 13 }}
-                        />
-                        <input
-                          type="date"
-                          value={editForm.echeance}
-                          onChange={(e) => setEditForm((f) => ({ ...f, echeance: e.target.value }))}
-                          style={{ fontSize: 13 }}
-                        />
-                        <button type="submit" className="btn-icon" title="Sauvegarder" disabled={busy} style={{ color: '#16a34a', borderColor: '#86efac' }}><IconCheck /></button>
-                        <button type="button" className="btn-icon" title="Annuler" onClick={() => { setEditId(null); setErr(null); }} style={{ color: '#6b7280', borderColor: '#d1d5db' }}><IconX /></button>
-                      </form>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={a.id}>
-                    <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.libelle}</td>
-                    <td>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{a.ponderation}%</span>
-                    </td>
-                    <td>
-                      {modifId === a.id ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--gray-400)' }}>
-                          <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                          Mise à jour…
-                        </span>
-                      ) : (
-                        <StatutSelect
-                          value={a.statut}
-                          disabled={modifId === a.id}
-                          onChange={(v) => changerStatut(a.id, v)}
-                        />
+              {list.map((a) => (
+                <tr key={a.id}>
+                  <td style={{ paddingLeft: 20, fontWeight: 500 }}>{a.libelle}</td>
+                  <td>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>{a.ponderation}%</span>
+                  </td>
+                  <td>
+                    {modifId === a.id ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--gray-400)' }}>
+                        <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                        Mise à jour…
+                      </span>
+                    ) : (
+                      <StatutSelect
+                        value={a.statut}
+                        disabled={modifId === a.id}
+                        onChange={(v) => changerStatut(a.id, v)}
+                      />
+                    )}
+                  </td>
+                  <td>
+                    {a.responsable
+                      ? <span style={{ fontWeight: 500 }}>{a.responsable}</span>
+                      : <span className="text-muted">—</span>}
+                  </td>
+                  <td>
+                    {a.echeance ? (
+                      <span style={{ color: new Date(a.echeance) < new Date() ? '#C0392B' : 'inherit' }}>
+                        {new Date(a.echeance).toLocaleDateString('fr-FR')}
+                      </span>
+                    ) : <span className="text-muted">—</span>}
+                  </td>
+                  <td style={{ fontSize: 12, color: 'var(--gray-400)' }}>
+                    {new Date(a.dateDerniereMaj).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn-icon" title="Modifier" onClick={() => ouvrirEdit(a)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
+                      {allowDelete && (
+                        <button className="btn-icon" title="Supprimer" onClick={() => supprimerAction(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
                       )}
-                    </td>
-                    <td>
-                      {a.responsable
-                        ? <span style={{ fontWeight: 500 }}>{a.responsable}</span>
-                        : <span className="text-muted">—</span>}
-                    </td>
-                    <td>
-                      {a.echeance ? (
-                        <span style={{ color: new Date(a.echeance) < new Date() ? '#C0392B' : 'inherit' }}>
-                          {new Date(a.echeance).toLocaleDateString('fr-FR')}
-                        </span>
-                      ) : <span className="text-muted">—</span>}
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--gray-400)' }}>
-                      {new Date(a.dateDerniereMaj).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn-icon" title="Modifier" onClick={() => ouvrirEdit(a)} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
-                        {allowDelete && (
-                          <button className="btn-icon" title="Supprimer" onClick={() => supprimerAction(a.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -267,55 +218,48 @@ export default function Actions() {
     >
       {/* Formulaire création */}
       {showForm && (
-        <div className="card mb-16" style={{ padding: '16px 20px' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>Créer une action corrective</div>
-          {err && <div className="alert alert-danger" style={{ marginBottom: 10 }}>{err}</div>}
+        <div className="card mb-16">
+          <div className="modal-header" style={{ borderRadius: '8px 8px 0 0' }}>
+            <div className="modal-title" style={{ fontSize: 15 }}>Créer une action corrective</div>
+            <button className="btn-icon" onClick={() => { setShowForm(false); setErr(null); }}>✕</button>
+          </div>
           <form onSubmit={creerAction}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, marginBottom: 8 }}>
-              <input
-                placeholder="Libellé de l'action *"
-                required
-                value={form.libelle}
-                onChange={(e) => setForm((f) => ({ ...f, libelle: e.target.value }))}
-                style={{ fontSize: 13 }}
-              />
-              <input
-                type="number" min="0" max="100" step="0.1"
-                placeholder="Poids %"
-                required
-                value={form.ponderation}
-                onChange={(e) => setForm((f) => ({ ...f, ponderation: e.target.value }))}
-                style={{ width: 90, fontSize: 13 }}
-              />
-              <select value={form.statut} onChange={(e) => setForm((f) => ({ ...f, statut: e.target.value as StatutAction }))} style={{ fontSize: 13 }}>
-                {STATUTS.map((s) => <option key={s} value={s}>{s === 'NON_DEMARRE' ? 'Non démarré' : s === 'EN_COURS' ? 'En cours' : 'Réalisé'}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
-              <input
-                placeholder="Responsable (optionnel)"
-                value={form.responsable}
-                onChange={(e) => setForm((f) => ({ ...f, responsable: e.target.value }))}
-                style={{ fontSize: 13 }}
-              />
-              <input
-                type="date"
-                value={form.echeance}
-                onChange={(e) => setForm((f) => ({ ...f, echeance: e.target.value }))}
-                style={{ fontSize: 13 }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, whiteSpace: 'nowrap' }}>
+            <div className="modal-body">
+              {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+              <div className="form-group">
+                <label>Libellé de l'action *</label>
+                <input required value={form.libelle} onChange={(e) => setForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Décrire l'action à mener…" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <div className="form-group">
+                  <label>Pondération (%)</label>
+                  <input type="number" min="0" max="100" step="0.1" required value={form.ponderation} onChange={(e) => setForm((f) => ({ ...f, ponderation: e.target.value }))} placeholder="10" />
+                </div>
+                <div className="form-group">
+                  <label>Statut initial</label>
+                  <select value={form.statut} onChange={(e) => setForm((f) => ({ ...f, statut: e.target.value as StatutAction }))}>
+                    {STATUTS.map((s) => <option key={s} value={s}>{s === 'NON_DEMARRE' ? 'Non démarré' : s === 'EN_COURS' ? 'En cours' : 'Réalisé'}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <div className="form-group">
+                  <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <input value={form.responsable} onChange={(e) => setForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
+                </div>
+                <div className="form-group">
+                  <label>Échéance <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <input type="date" value={form.echeance} onChange={(e) => setForm((f) => ({ ...f, echeance: e.target.value }))} />
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.estGenerique} onChange={(e) => setForm((f) => ({ ...f, estGenerique: e.target.checked }))} />
-                Action générique
+                <span>Action générique <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(indicateur de processus, hors score global)</span></span>
               </label>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
-                {busy ? 'Création…' : 'Créer'}
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowForm(false); setErr(null); }}>
-                Annuler
-              </button>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => { setShowForm(false); setErr(null); }}>Annuler</button>
+              <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Création…' : 'Créer l\'action'}</button>
             </div>
           </form>
         </div>
@@ -326,10 +270,49 @@ export default function Actions() {
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Les <strong>actions génériques</strong> constituent un indicateur de processus indépendant. Leur avancement n'est pas inclus dans le score global du projet.
+        <span>Les <strong>actions génériques</strong> constituent un indicateur de processus indépendant. Leur avancement n'est pas inclus dans le score global du projet.</span>
       </div>
-      {renderTable(generiques,  'Actions génériques — Processus de traitement des écarts', true, false)}
+      {renderTable(generiques,  'Actions génériques · Processus de traitement des écarts', true, false)}
       {renderTable(specifiques, 'Actions spécifiques', false, true)}
+
+      {/* Modal d'édition */}
+      {editId !== null && (
+        <div className="modal-overlay" onClick={() => { setEditId(null); setErr(null); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Modifier l'action</div>
+              <button className="btn-icon" onClick={() => { setEditId(null); setErr(null); }}>✕</button>
+            </div>
+            <form onSubmit={sauvegarderEdit}>
+              <div className="modal-body">
+                {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                <div className="form-group">
+                  <label>Libellé de l'action *</label>
+                  <input required value={editForm.libelle} onChange={(e) => setEditForm((f) => ({ ...f, libelle: e.target.value }))} placeholder="Libellé…" />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                  <div className="form-group">
+                    <label>Pondération (%)</label>
+                    <input type="number" min="0" max="100" step="0.1" required value={editForm.ponderation} onChange={(e) => setEditForm((f) => ({ ...f, ponderation: e.target.value }))} />
+                  </div>
+                  <div className="form-group">
+                    <label>Échéance <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                    <input type="date" value={editForm.echeance} onChange={(e) => setEditForm((f) => ({ ...f, echeance: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Responsable <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <input value={editForm.responsable} onChange={(e) => setEditForm((f) => ({ ...f, responsable: e.target.value }))} placeholder="Nom du responsable…" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => { setEditId(null); setErr(null); }}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
