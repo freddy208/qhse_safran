@@ -166,12 +166,12 @@ export default function Inventaire() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             className="btn btn-sm"
-            style={{ background: 'var(--color-success)', color: '#fff', border: 'none' }}
+            style={{ background: '#16a34a', color: '#fff', border: 'none' }}
             onClick={handleExportPdf}
             disabled={!projetActif || exportBusy}
             title="Télécharger l'inventaire complet en PDF"
           >
-            {exportBusy ? '…' : '↓ PDF inventaire'}
+            ↓ {exportBusy ? 'Génération…' : 'PDF inventaire'}
           </button>
           <button
             className="btn btn-primary btn-sm"

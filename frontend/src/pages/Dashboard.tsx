@@ -108,13 +108,12 @@ export default function Dashboard() {
       subtitle={projetActif?.nom ?? ''}
       actions={
         <button
-          className="btn btn-sm"
-          style={{ background: 'var(--color-primary)', color: '#fff', border: 'none' }}
+          className="btn btn-primary btn-sm"
           onClick={handleRapport}
           disabled={!projetActif || rapportBusy}
           title="Télécharger le rapport complet en PDF"
         >
-          {rapportBusy ? '…' : '↓ Rapport PDF'}
+          ↓ {rapportBusy ? 'Génération…' : 'Rapport PDF'}
         </button>
       }
     >
