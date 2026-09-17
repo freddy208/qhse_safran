@@ -154,12 +154,20 @@ async function main() {
     }
   }
 
-  // ── Projet 2 : Flux H25 ──────────────────────────────────────────────────
-  const projH25 = await prisma.projet.upsert({
-    where: { nom: 'Substitution Flux de brasage H25' },
-    update: { description: 'Projet de substitution du flux de brasage H25 par un produit moins dangereux – 9 axes – YQLL/HSE' },
-    create: { nom: 'Substitution Flux de brasage H25', description: 'Projet de substitution du flux de brasage H25 par un produit moins dangereux – 9 axes – YQLL/HSE' },
+  // ── Projet 2 : Substitution Flux H25 ────────────────────────────────────
+  let projH25 = await prisma.projet.findFirst({
+    where: { OR: [{ nom: 'Substitution Flux H25' }, { nom: 'Substitution Flux de brasage H25' }] },
   });
+  if (!projH25) {
+    projH25 = await prisma.projet.create({
+      data: { nom: 'Substitution Flux H25', description: 'Projet de substitution du Flux H25 par un produit moins dangereux – 9 axes – YQLL/HSE' },
+    });
+  } else if (projH25.nom !== 'Substitution Flux H25' || projH25.description !== 'Projet de substitution du Flux H25 par un produit moins dangereux – 9 axes – YQLL/HSE') {
+    projH25 = await prisma.projet.update({
+      where: { id: projH25.id },
+      data: { nom: 'Substitution Flux H25', description: 'Projet de substitution du Flux H25 par un produit moins dangereux – 9 axes – YQLL/HSE' },
+    });
+  }
 
   const axesH25 = [
     {
@@ -257,6 +265,12 @@ async function main() {
         await prisma.sousAction.create({ data: { ...sa, axeId: axe.id, statut: 'NON_DEMARRE' as StatutAction } });
       }
     }
+  }
+
+  // ── Zone localisation Flux H25 : ICLK (CF 318) – pas d'armoires ─────────
+  const existingZoneH25 = await prisma.zone.findFirst({ where: { projetId: projH25.id, nom: 'ICLK (CF 318)' } });
+  if (!existingZoneH25) {
+    await prisma.zone.create({ data: { projetId: projH25.id, nom: 'ICLK (CF 318)' } });
   }
 
   // ── TypeChecklist : EN 14470-1 – 20 critères ─────────────────────────────

@@ -160,10 +160,17 @@ export const produitsApi = {
 
 // ── Checklists ────────────────────────────────────────────────────────────
 export const checklistsApi = {
-  listTypes:     () => api.get<TypeChecklist[]>('/type-checklists'),
-  getResultats:  (armoireId: number, typeChecklistId?: number) =>
+  listTypes:       () => api.get<TypeChecklist[]>('/type-checklists'),
+  createType:      (nom: string) => api.post<TypeChecklist>('/type-checklists', { nom }),
+  updateType:      (id: number, nom: string) => api.put<TypeChecklist>(`/type-checklists/${id}`, { nom }),
+  deleteType:      (id: number) => api.delete<void>(`/type-checklists/${id}`),
+  createCritere:   (typeChecklistId: number, libelle: string, ordre: number) =>
+    api.post<Critere>(`/type-checklists/${typeChecklistId}/criteres`, { libelle, ordre }),
+  updateCritere:   (id: number, data: { libelle?: string; ordre?: number }) => api.put<Critere>(`/criteres/${id}`, data),
+  deleteCritere:   (id: number) => api.delete<void>(`/criteres/${id}`),
+  getResultats:    (armoireId: number, typeChecklistId?: number) =>
     api.get<ResultatCritere[]>(`/armoires/${armoireId}/resultats${typeChecklistId ? `?typeChecklistId=${typeChecklistId}` : ''}`),
-  upsertResultat: (armoireId: number, critereId: number, resultat: ResultatEnum) =>
+  upsertResultat:  (armoireId: number, critereId: number, resultat: ResultatEnum) =>
     api.post<ResultatCritere>(`/armoires/${armoireId}/resultats`, { critereId, resultat }),
 };
 

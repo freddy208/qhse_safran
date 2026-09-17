@@ -61,7 +61,7 @@ export default function Dashboard() {
   useEffect(() => { load(); }, [projetActif?.id]);
 
   if (loading && !data) return (
-    <Layout title="Tableau de bord" subtitle={projetActif?.nom ?? ''}>
+    <Layout title="Suivi des Missions SSE sur les produits chimiques" subtitle={projetActif?.nom ?? ''}>
       <div className="kpi-grid mb-20">
         {[...Array(8)].map((_, i) => <div key={i} className="kpi-card skeleton-card"><div className="skeleton" style={{ height: 16, width: '60%', marginBottom: 12 }} /><div className="skeleton" style={{ height: 36, width: '50%', marginBottom: 8 }} /><div className="skeleton" style={{ height: 12, width: '80%' }} /></div>)}
       </div>
@@ -72,7 +72,7 @@ export default function Dashboard() {
     </Layout>
   );
   if (!data) return (
-    <Layout title="Tableau de bord">
+    <Layout title="Suivi des Missions SSE sur les produits chimiques">
       <div className="empty-state"><div className="empty-state-title">Aucun projet sélectionné</div></div>
     </Layout>
   );
@@ -104,7 +104,7 @@ export default function Dashboard() {
 
   return (
     <Layout
-      title="Tableau de bord"
+      title="Suivi des Missions SSE sur les produits chimiques"
       subtitle={projetActif?.nom ?? ''}
       actions={
         <button

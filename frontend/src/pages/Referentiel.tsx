@@ -1,10 +1,10 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
-import { axesApi, sousActionsApi, zonesApi, armoiresApi, Axe, SousAction, Zone } from '../api/client';
+import { axesApi, sousActionsApi, zonesApi, armoiresApi, checklistsApi, Axe, SousAction, Zone, TypeChecklist, Critere } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 
-type Onglet = 'axes' | 'zones';
+type Onglet = 'axes' | 'zones' | 'checklists';
 
 const IconTrash = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,14 +45,25 @@ export default function Referentiel() {
   const [editArmoireId,  setEditArmoireId]  = useState<number | null>(null);
   const [editArmoireNom, setEditArmoireNom] = useState('');
 
+  // Checklists
+  const [typeChecklists,   setTypeChecklists]   = useState<TypeChecklist[]>([]);
+  const [newTypeNom,       setNewTypeNom]       = useState('');
+  const [newCritereTypeId, setNewCritereTypeId] = useState<number | null>(null);
+  const [newCritereLibelle, setNewCritereLibelle] = useState('');
+  const [editTypeId,       setEditTypeId]       = useState<number | null>(null);
+  const [editTypeNom,      setEditTypeNom]      = useState('');
+  const [editCritereId,    setEditCritereId]    = useState<number | null>(null);
+  const [editCritereLibelle, setEditCritereLibelle] = useState('');
+
   const charger = async (init = false) => {
     if (!projetActif) return;
     if (init) setLoading(true);
     try {
-      const [a, z] = await Promise.all([axesApi.list(projetActif.id), zonesApi.list(projetActif.id)]);
-      setAxes(a); setZones(z);
+      const [a, z, tc] = await Promise.all([axesApi.list(projetActif.id), zonesApi.list(projetActif.id), checklistsApi.listTypes()]);
+      setAxes(a); setZones(z); setTypeChecklists(tc);
       if (a[0] && !saAxeId)  setSaAxeId(a[0].id);
       if (z[0] && !zoneIdA)  setZoneIdA(z[0].id);
+      if (tc[0] && !newCritereTypeId) setNewCritereTypeId(tc[0].id);
     } finally { if (init) setLoading(false); }
   };
 
@@ -112,9 +123,9 @@ export default function Referentiel() {
     >
       {/* ── Tabs ─────────────────────────────────────────────────── */}
       <div className="tabs">
-        {(['axes', 'zones'] as Onglet[]).map((o) => (
+        {(['axes', 'zones', 'checklists'] as Onglet[]).map((o) => (
           <button key={o} className={`tab${onglet === o ? ' active' : ''}`} onClick={() => setOnglet(o)}>
-            {o === 'axes' ? 'Axes & Sous-actions' : 'Zones & Armoires'}
+            {o === 'axes' ? 'Axes & Sous-actions' : o === 'zones' ? 'Zones & Armoires' : 'Types de checklist'}
           </button>
         ))}
       </div>
@@ -324,6 +335,148 @@ export default function Referentiel() {
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {/* ═══ CHECKLISTS ══════════════════════════════════════════════ */}
+      {onglet === 'checklists' && (
+        <>
+          {/* Créer type de checklist */}
+          <div className="card mb-14">
+            <div className="card-header"><span className="card-title">Ajouter un type de checklist</span></div>
+            <div className="card-body">
+              <form onSubmit={soumettre(() => checklistsApi.createType(newTypeNom).then((tc) => { setTypeChecklists((p) => [...p, { ...tc, criteres: [] }]); setNewTypeNom(''); if (!newCritereTypeId) setNewCritereTypeId(tc.id); }))}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0 12px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Nom du type</label>
+                    <input type="text" required value={newTypeNom} onChange={(e) => setNewTypeNom(e.target.value)} placeholder="Ex : Conformité EN 14470-1…" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={busy} style={{ marginBottom: 1 }}>Ajouter</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Ajouter un critère */}
+          {typeChecklists.length > 0 && (
+            <div className="card mb-14">
+              <div className="card-header"><span className="card-title">Ajouter un critère</span></div>
+              <div className="card-body">
+                <form onSubmit={soumettre(async () => {
+                  const tc = typeChecklists.find((t) => t.id === newCritereTypeId);
+                  const ordre = tc ? tc.criteres.length + 1 : 1;
+                  const c = await checklistsApi.createCritere(newCritereTypeId!, newCritereLibelle, ordre);
+                  setTypeChecklists((p) => p.map((t) => t.id === newCritereTypeId ? { ...t, criteres: [...t.criteres, c] } : t));
+                  setNewCritereLibelle('');
+                })}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr auto', gap: '0 12px', alignItems: 'end' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Type parent</label>
+                      <select value={newCritereTypeId ?? ''} onChange={(e) => setNewCritereTypeId(Number(e.target.value))}>
+                        {typeChecklists.map((t) => <option key={t.id} value={t.id}>{t.nom.slice(0, 40)}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Libellé du critère</label>
+                      <input type="text" required value={newCritereLibelle} onChange={(e) => setNewCritereLibelle(e.target.value)} placeholder="Ex : Marquage EN 14470-1…" />
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !newCritereTypeId} style={{ marginBottom: 1 }}>Ajouter</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Liste types avec critères */}
+          {typeChecklists.map((tc) => (
+            <div key={tc.id} className="card mb-12">
+              <div className="card-header">
+                <span style={{ fontWeight: 700, fontSize: 14 }}>{tc.nom}</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn-icon" title="Renommer" onClick={() => { setEditTypeId(tc.id); setEditTypeNom(tc.nom); }} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
+                  <button className="btn btn-danger btn-xs" onClick={async () => { if (!confirm(`Supprimer "${tc.nom}" et tous ses critères ?`)) return; try { await checklistsApi.deleteType(tc.id); setTypeChecklists((p) => p.filter((t) => t.id !== tc.id)); } catch (e) { toast.error((e as Error).message); } }}><IconTrash /> Supprimer</button>
+                </div>
+              </div>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 50, paddingLeft: 20 }}>#</th>
+                      <th>Libellé du critère</th>
+                      <th style={{ width: 80 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tc.criteres.map((c) => (
+                      <tr key={c.id}>
+                        <td style={{ paddingLeft: 20, color: 'var(--gray-400)', fontSize: 13 }}>{c.ordre}</td>
+                        <td style={{ paddingLeft: 4 }}>{c.libelle}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                            <button className="btn-icon" title="Modifier" onClick={() => { setEditCritereId(c.id); setEditCritereLibelle(c.libelle); }} style={{ color: '#2563eb', borderColor: '#93c5fd' }}><IconEdit /></button>
+                            <button className="btn-icon" title="Supprimer" onClick={async () => { if (!confirm('Supprimer ce critère ?')) return; try { await checklistsApi.deleteCritere(c.id); setTypeChecklists((p) => p.map((t) => t.id === tc.id ? { ...t, criteres: t.criteres.filter((cr) => cr.id !== c.id) } : t)); } catch (e) { toast.error((e as Error).message); } }} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {tc.criteres.length === 0 && (
+                      <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-400)', fontStyle: 'italic', paddingLeft: 20 }}>Aucun critère</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
+          {/* Modal renommer type */}
+          {editTypeId !== null && (
+            <div className="modal-overlay" onClick={() => setEditTypeId(null)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-title">Renommer le type de checklist</div>
+                  <button className="btn-icon" onClick={() => setEditTypeId(null)}>✕</button>
+                </div>
+                <form onSubmit={soumettre(() => checklistsApi.updateType(editTypeId!, editTypeNom).then((updated) => { setTypeChecklists((p) => p.map((t) => t.id === editTypeId ? { ...t, nom: updated.nom } : t)); setEditTypeId(null); }))}>
+                  <div className="modal-body">
+                    {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                    <div className="form-group">
+                      <label>Nom *</label>
+                      <input type="text" required value={editTypeNom} onChange={(e) => setEditTypeNom(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-ghost" onClick={() => setEditTypeId(null)}>Annuler</button>
+                    <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal modifier critère */}
+          {editCritereId !== null && (
+            <div className="modal-overlay" onClick={() => setEditCritereId(null)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-title">Modifier le critère</div>
+                  <button className="btn-icon" onClick={() => setEditCritereId(null)}>✕</button>
+                </div>
+                <form onSubmit={soumettre(() => checklistsApi.updateCritere(editCritereId!, { libelle: editCritereLibelle }).then((updated: Critere) => { setTypeChecklists((p) => p.map((t) => ({ ...t, criteres: t.criteres.map((c) => c.id === editCritereId ? { ...c, libelle: updated.libelle } : c) }))); setEditCritereId(null); }))}>
+                  <div className="modal-body">
+                    {err && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{err}</div>}
+                    <div className="form-group">
+                      <label>Libellé *</label>
+                      <input type="text" required value={editCritereLibelle} onChange={(e) => setEditCritereLibelle(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-ghost" onClick={() => setEditCritereId(null)}>Annuler</button>
+                    <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </>
       )}
 

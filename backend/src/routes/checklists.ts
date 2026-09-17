@@ -24,6 +24,23 @@ router.post('/type-checklists', requireAuth, ah(async (req: Request, res: Respon
   return res.status(201).json(tc);
 }));
 
+// PUT /api/type-checklists/:id
+router.put('/type-checklists/:id', requireAuth, ah(async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  const schema = z.object({ nom: z.string().min(1).max(200) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const tc = await prisma.typeChecklist.update({ where: { id }, data: parsed.data });
+  return res.json(tc);
+}));
+
+// DELETE /api/type-checklists/:id
+router.delete('/type-checklists/:id', requireAuth, ah(async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  await prisma.typeChecklist.delete({ where: { id } });
+  return res.status(204).send();
+}));
+
 // POST /api/type-checklists/:typeId/criteres
 router.post('/type-checklists/:typeId/criteres', requireAuth, ah(async (req: Request, res: Response) => {
   const typeChecklistId = parseInt(req.params.typeId, 10);
