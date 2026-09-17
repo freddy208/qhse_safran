@@ -41,7 +41,7 @@ export default function Login() {
         <div className="login-brand">
           <div className="login-brand-logo">
             <div className="login-brand-icon"><IconShield /></div>
-            <div className="login-brand-name">QHSE · Safran</div>
+            <div className="login-brand-name">Suivi SSE ICLB/ICLK</div>
           </div>
           <h1 className="login-headline">
             Pilotez votre<br />conformité QHSE<br />en temps réel
@@ -160,7 +160,7 @@ export default function Login() {
           </p>
 
           <p style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--gray-400)' }}>
-            Dashboard QHSE Safran · Accès restreint
+            Suivi SSE ICLB/ICLK (2026–2029) · Accès restreint
           </p>
         </div>
       </div>

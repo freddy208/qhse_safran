@@ -116,8 +116,8 @@ export default function Layout({ children, title, subtitle, actions }: LayoutPro
           <div className="sidebar-brand-logo">
             <div className="sidebar-brand-icon"><IconQhse /></div>
             <div>
-              <div className="sidebar-brand-name">QHSE Safran</div>
-              <div className="sidebar-brand-sub">Gestion pilote · v1.0</div>
+              <div className="sidebar-brand-name">Suivi SSE</div>
+              <div className="sidebar-brand-sub">ICLB / ICLK · 2026–2029</div>
             </div>
           </div>
         </div>
