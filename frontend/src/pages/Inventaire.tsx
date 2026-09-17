@@ -53,6 +53,8 @@ export default function Inventaire() {
   const [busy,      setBusy]      = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [exportBusy, setExportBusy] = useState(false);
+  const [modalZoneId,    setModalZoneId]    = useState<number | null>(null);
+  const [modalArmoireId, setModalArmoireId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!projetActif) return;
@@ -86,7 +88,14 @@ export default function Inventaire() {
     });
   };
 
-  const ouvrirCreation = () => { setForm(FORM_VIDE); setEditId(null); setErr(null); setModal('create'); };
+  const ouvrirCreation = () => {
+    setForm(FORM_VIDE); setEditId(null); setErr(null);
+    const mz = zoneId ?? (zones[0]?.id ?? null);
+    const zone = zones.find((z) => z.id === mz);
+    const ma = armoireId ?? (zone?.armoires?.[0]?.id ?? null);
+    setModalZoneId(mz); setModalArmoireId(ma);
+    setModal('create');
+  };
   const ouvrirEdition  = (p: ProduitAvecConformite) => {
     setForm({
       nom:                 p.nom,
@@ -103,7 +112,8 @@ export default function Inventaire() {
 
   const soumettre = async (e: FormEvent) => {
     e.preventDefault();
-    if (!armoireId) return;
+    const cibleArmoireId = editId ? armoireId : modalArmoireId;
+    if (!cibleArmoireId) { setErr('Sélectionnez une armoire.'); return; }
     setBusy(true); setErr(null);
     try {
       const payload = {
@@ -117,7 +127,7 @@ export default function Inventaire() {
         fdsDateVerification: toISO(form.fdsDateVerification),
       };
       if (editId) await produitsApi.update(editId, payload);
-      else        await produitsApi.create(armoireId, payload);
+      else        await produitsApi.create(cibleArmoireId, payload);
       setModal(null); refresh();
     } catch (ex: unknown) {
       setErr((ex as Error).message);
@@ -188,8 +198,7 @@ export default function Inventaire() {
           <button
             className="btn btn-primary btn-sm"
             onClick={ouvrirCreation}
-            disabled={!armoireId}
-            title={!armoireId ? 'Créez d\'abord une armoire dans Référentiel → Zones & Armoires' : undefined}
+            disabled={!projetActif}
           >
             <IconPlus /> Ajouter un produit
           </button>
@@ -333,6 +342,33 @@ export default function Inventaire() {
             <div className="modal-body">
               {err && <div className="alert alert-error">{err}</div>}
               <form id="form-produit" onSubmit={soumettre}>
+                {modal === 'create' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
+                    <div className="form-group">
+                      <label>Zone <span style={{ color: '#C0392B' }}>*</span></label>
+                      <select value={modalZoneId ?? ''} onChange={(e) => {
+                        const zid = Number(e.target.value);
+                        setModalZoneId(zid);
+                        const z = zones.find((z) => z.id === zid);
+                        setModalArmoireId(z?.armoires?.[0]?.id ?? null);
+                      }}>
+                        {zones.length === 0 && <option value="">Aucune zone</option>}
+                        {zones.map((z) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Armoire <span style={{ color: '#C0392B' }}>*</span></label>
+                      <select value={modalArmoireId ?? ''} onChange={(e) => setModalArmoireId(Number(e.target.value))}>
+                        {(zones.find((z) => z.id === modalZoneId)?.armoires ?? []).length === 0
+                          ? <option value="">Aucune armoire — créer dans Référentiel</option>
+                          : (zones.find((z) => z.id === modalZoneId)?.armoires ?? []).map((a) => (
+                              <option key={a.id} value={a.id}>{a.nom}</option>
+                            ))
+                        }
+                      </select>
+                    </div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Nom du produit <span style={{ color: '#C0392B' }}>*</span></label>
                   <input type="text" required value={form.nom}
