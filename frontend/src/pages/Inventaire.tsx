@@ -108,7 +108,7 @@ export default function Inventaire() {
       datePeremption:      p.datePeremption ? p.datePeremption.slice(0, 10) : '',
       urlFds:              p.urlFds ?? '',
       fdsDateVerification: p.fdsDateVerification ? p.fdsDateVerification.slice(0, 10) : '',
-      raison:              p.raison ?? '',
+      raison:              p.raison ?? p.conformite.raisons.join(', '),
     });
     setEditId(p.id); setErr(null); setModal('edit');
   };
@@ -290,9 +290,11 @@ export default function Inventaire() {
                     </td>
                     <td><ConformiteBadge statut={p.conformite.statut} /></td>
                     <td style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                      {p.conformite.raisons.length > 0
-                        ? p.conformite.raisons.join(', ')
-                        : <span className="text-muted">—</span>}
+                      {p.raison
+                        ? p.raison
+                        : p.conformite.raisons.length > 0
+                          ? p.conformite.raisons.join(', ')
+                          : <span className="text-muted">—</span>}
                     </td>
                     <td>
                       <div className="flex gap-6">
@@ -429,12 +431,12 @@ export default function Inventaire() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Raison / Observation</label>
+                  <label>Raisons</label>
                   <textarea
                     rows={3}
                     value={form.raison}
                     onChange={(e) => setForm((p) => ({ ...p, raison: e.target.value }))}
-                    placeholder="Raison de présence, observation particulière…"
+                    placeholder="Raisons de non-conformité…"
                     style={{ resize: 'vertical' }}
                   />
                 </div>
