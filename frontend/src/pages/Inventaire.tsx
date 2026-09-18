@@ -9,10 +9,12 @@ interface ProduitForm {
   nom: string; codeProduit: string; quantitePresente: string;
   quantiteUtilisee: string; volumeMax: string;
   datePeremption: string; urlFds: string; fdsDateVerification: string;
+  raison: string;
 }
 const FORM_VIDE: ProduitForm = {
   nom: '', codeProduit: '', quantitePresente: '', quantiteUtilisee: '',
   volumeMax: '', datePeremption: '', urlFds: '', fdsDateVerification: '',
+  raison: '',
 };
 function toISO(s: string) { return s ? new Date(s).toISOString() : undefined; }
 function isExpired(d: string | null | undefined) {
@@ -106,6 +108,7 @@ export default function Inventaire() {
       datePeremption:      p.datePeremption ? p.datePeremption.slice(0, 10) : '',
       urlFds:              p.urlFds ?? '',
       fdsDateVerification: p.fdsDateVerification ? p.fdsDateVerification.slice(0, 10) : '',
+      raison:              p.raison ?? '',
     });
     setEditId(p.id); setErr(null); setModal('edit');
   };
@@ -125,6 +128,7 @@ export default function Inventaire() {
         datePeremption:      toISO(form.datePeremption),
         urlFds:              form.urlFds || null,
         fdsDateVerification: toISO(form.fdsDateVerification),
+        raison:              form.raison || null,
       };
       if (editId) await produitsApi.update(editId, payload);
       else        await produitsApi.create(cibleArmoireId, payload);
@@ -422,6 +426,13 @@ export default function Inventaire() {
                   <label>URL de la FDS</label>
                   <input type="url" value={form.urlFds} placeholder="https://…"
                     onChange={(e) => setForm((p) => ({ ...p, urlFds: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Raison / Observation</label>
+                  <input type="text" value={form.raison}
+                    onChange={(e) => setForm((p) => ({ ...p, raison: e.target.value }))}
+                    placeholder="Raison de présence, observation particulière…"
                   />
                 </div>
               </form>

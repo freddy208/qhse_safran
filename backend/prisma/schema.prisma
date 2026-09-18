@@ -171,6 +171,7 @@ model Produit {
   datePeremption      DateTime?
   urlFds              String?
   fdsDateVerification DateTime?
+  raison              String?
   dateDerniereMaj     DateTime  @updatedAt
 
   armoire Armoire @relation(fields: [armoireId], references: [id], onDelete: Cascade)

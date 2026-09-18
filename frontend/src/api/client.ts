@@ -247,7 +247,7 @@ export interface Armoire { id: number; zoneId: number; nom: string; tauxConformi
 export interface TypeChecklist { id: number; nom: string; criteres: Critere[]; }
 export interface Critere { id: number; typeChecklistId: number; libelle: string; ordre: number; }
 export interface ResultatCritere { id: number; armoireId: number; critereId: number; resultat: ResultatEnum; dateDerniereMaj: string; critere?: Critere & { typeChecklist: TypeChecklist }; }
-export interface Produit { id: number; armoireId: number; nom: string; codeProduit?: string | null; quantitePresente?: number | null; quantiteUtilisee?: number | null; volumeMax?: number | null; datePeremption?: string | null; urlFds?: string | null; fdsDateVerification?: string | null; dateDerniereMaj: string; }
+export interface Produit { id: number; armoireId: number; nom: string; codeProduit?: string | null; quantitePresente?: number | null; quantiteUtilisee?: number | null; volumeMax?: number | null; datePeremption?: string | null; urlFds?: string | null; fdsDateVerification?: string | null; raison?: string | null; dateDerniereMaj: string; }
 export interface ConformiteProduit { statut: 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR'; raisons: string[]; }
 export interface ProduitAvecConformite extends Produit { conformite: ConformiteProduit; }
 export interface ExigenceAudit { id: number; projetId: number; domaine: string; exigence: string; questionControle?: string | null; conformite?: ConformiteAudit | null; preuves?: string | null; actionAMener?: string | null; responsable?: string | null; dateAudit?: string | null; dateDerniereMaj: string; actions?: ActionLinked[]; }

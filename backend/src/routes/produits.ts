@@ -18,6 +18,7 @@ const produitSchema = z.object({
   datePeremption:      z.string().datetime().optional().nullable(),
   urlFds:              z.string().url().optional().nullable().or(z.literal('')),
   fdsDateVerification: z.string().datetime().optional().nullable(),
+  raison:              z.string().max(500).optional().nullable(),
 });
 
 async function getTauxArmoire(armoireId: number): Promise<number | null> {
@@ -63,6 +64,7 @@ router.post('/armoires/:armoireId/produits', requireAuth, ah(async (req: Request
       datePeremption:      parsed.data.datePeremption ? new Date(parsed.data.datePeremption) : null,
       urlFds:              parsed.data.urlFds || null,
       fdsDateVerification: parsed.data.fdsDateVerification ? new Date(parsed.data.fdsDateVerification) : null,
+      raison:              parsed.data.raison ?? null,
     },
   });
   await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'produits', ligneId: produit.id, champModifie: 'création', nouvelleValeur: produit.nom });
@@ -90,6 +92,7 @@ router.put('/produits/:id', requireAuth, ah(async (req: Request, res: Response) 
       datePeremption:      parsed.data.datePeremption ? new Date(parsed.data.datePeremption) : undefined,
       urlFds:              parsed.data.urlFds === '' ? null : parsed.data.urlFds,
       fdsDateVerification: parsed.data.fdsDateVerification ? new Date(parsed.data.fdsDateVerification) : undefined,
+      raison:              parsed.data.raison ?? undefined,
     },
   });
   await logAudit({ utilisateurId: req.user!.id, tableConcernee: 'produits', ligneId: id, champModifie: 'mise à jour', ancienneValeur: JSON.stringify(avant), nouvelleValeur: JSON.stringify(produit) });

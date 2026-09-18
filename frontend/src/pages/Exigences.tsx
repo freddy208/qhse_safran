@@ -72,7 +72,7 @@ export default function Exigences() {
 
   const ouvrir = (ex: ExigenceAudit) => {
     setEditId(ex.id);
-    setEditForm({ conformite: ex.conformite, preuves: ex.preuves ?? '', actionAMener: ex.actionAMener ?? '', responsable: ex.responsable ?? '' });
+    setEditForm({ domaine: ex.domaine, exigence: ex.exigence, questionControle: ex.questionControle ?? '', conformite: ex.conformite, preuves: ex.preuves ?? '', actionAMener: ex.actionAMener ?? '', responsable: ex.responsable ?? '' });
     setErr(null);
     setShowActionForm(false);
     setActionForm({ libelle: ex.exigence ?? '', responsable: '', echeance: '' });
@@ -243,18 +243,26 @@ export default function Exigences() {
               <div className="modal-body">
                 {err && <div className="alert alert-error" style={{ marginBottom: 14 }}>{err}</div>}
 
-                {/* Texte de l'exigence en lecture */}
-                {exigenceEditee && (
-                  <div style={{ background: 'var(--gray-50)', borderRadius: 6, padding: '10px 12px', marginBottom: 16, fontSize: 13, color: 'var(--gray-700)' }}>
-                    <div style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--gray-400)', marginBottom: 4 }}>Exigence</div>
-                    <div>{exigenceEditee.exigence}</div>
-                    {exigenceEditee.dateAudit && (
-                      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--gray-400)' }}>
-                        Dernière évaluation : {new Date(exigenceEditee.dateAudit).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </div>
-                    )}
+                {exigenceEditee?.dateAudit && (
+                  <div style={{ fontSize: 11, color: 'var(--gray-400)', marginBottom: 12 }}>
+                    Dernière évaluation : {new Date(exigenceEditee.dateAudit).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                 )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '0 14px' }}>
+                  <div className="form-group">
+                    <label>Domaine *</label>
+                    <input type="text" required value={editForm.domaine ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, domaine: e.target.value }))} placeholder="Stockage, Formation…" />
+                  </div>
+                  <div className="form-group">
+                    <label>Exigence *</label>
+                    <input type="text" required value={editForm.exigence ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, exigence: e.target.value }))} placeholder="Texte de l'exigence…" />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Question de contrôle <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <input type="text" value={editForm.questionControle ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, questionControle: e.target.value }))} placeholder="Comment vérifier la conformité ?" />
+                </div>
 
                 <div className="form-group">
                   <label>Conformité</label>
