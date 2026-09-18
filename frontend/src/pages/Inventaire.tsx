@@ -430,9 +430,12 @@ export default function Inventaire() {
                 </div>
                 <div className="form-group">
                   <label>Raison / Observation</label>
-                  <input type="text" value={form.raison}
+                  <textarea
+                    rows={3}
+                    value={form.raison}
                     onChange={(e) => setForm((p) => ({ ...p, raison: e.target.value }))}
                     placeholder="Raison de présence, observation particulière…"
+                    style={{ resize: 'vertical' }}
                   />
                 </div>
               </form>
