@@ -208,7 +208,7 @@ export default function Dashboard() {
             <div className="kpi-icon">
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
             </div>
-            <div className="kpi-label">Sans code Safran</div>
+            <div className="kpi-label">Sans code</div>
             <div className="kpi-value">{data.statsExpiration.pctSansCode}<span className="kpi-unit">%</span></div>
             <div className="kpi-sub">{data.statsExpiration.nbSansCode} produit{data.statsExpiration.nbSansCode > 1 ? 's' : ''} non codifié{data.statsExpiration.nbSansCode > 1 ? 's' : ''}</div>
           </div>
