@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import Layout from '../components/Layout';
 import { useProject } from '../contexts/ProjectContext';
-import { zonesApi, armoiresApi, produitsApi, exportApi, Zone, ProduitAvecConformite, ProduitPage } from '../api/client';
+import { zonesApi, produitsApi, exportApi, Zone, ProduitAvecConformite, ProduitGlobal, ProduitPage } from '../api/client';
 import { ConformiteBadge } from '../components/StatusBadge';
 import { useToast } from '../contexts/ToastContext';
 
@@ -61,6 +61,8 @@ export default function Inventaire() {
   const [modalArmoireId, setModalArmoireId] = useState<number | null>(null);
   const [filtreFds,      setFiltreFds]      = useState<'tous' | 'A_JOUR' | 'OBSOLETE' | 'MANQUANTE'>('tous');
   const [filtrePeremption, setFiltrePeremption] = useState<'tous' | 'perime' | 'bientot'>('tous');
+  const [produitsGlobaux, setProduitsGlobaux] = useState<ProduitGlobal[]>([]);
+  const [loadingGlobal,   setLoadingGlobal]   = useState(false);
 
   useEffect(() => {
     if (!projetActif) return;
@@ -85,6 +87,19 @@ export default function Inventaire() {
       setPagination(meta);
     });
   }, [armoireId, page]);
+
+  const filtresActifs = filtreFds !== 'tous' || filtrePeremption !== 'tous';
+
+  useEffect(() => {
+    if (!projetActif || !filtresActifs) { setProduitsGlobaux([]); return; }
+    setLoadingGlobal(true);
+    produitsApi.search(projetActif.id, {
+      statutFds: filtreFds !== 'tous' ? filtreFds : undefined,
+      perime:    filtrePeremption === 'perime',
+      bientot:   filtrePeremption === 'bientot',
+    }).then(({ data }) => setProduitsGlobaux(data))
+      .finally(() => setLoadingGlobal(false));
+  }, [projetActif?.id, filtreFds, filtrePeremption, filtresActifs]);
 
   const refresh = () => {
     if (!armoireId) return;
@@ -157,19 +172,9 @@ export default function Inventaire() {
 
   const now = new Date();
   const in6m = new Date(now); in6m.setMonth(in6m.getMonth() + 6);
-  const produitsFiltres = produits.filter((p) => {
-    if (filtreFds !== 'tous' && p.statutFds !== filtreFds) return false;
-    if (filtrePeremption === 'perime') {
-      if (!p.datePeremption || new Date(p.datePeremption) >= now) return false;
-    }
-    if (filtrePeremption === 'bientot') {
-      if (!p.datePeremption) return false;
-      const d = new Date(p.datePeremption);
-      if (!(d >= now && d <= in6m)) return false;
-    }
-    return true;
-  });
-  const filtresActifs = filtreFds !== 'tous' || filtrePeremption !== 'tous';
+  // En mode global (filtre actif), on affiche produitsGlobaux ; sinon les produits de l'armoire
+  const produitsAffiches: (ProduitAvecConformite & { armoireNom?: string; zoneNom?: string })[] =
+    filtresActifs ? produitsGlobaux : produits;
 
   if (loading) return (
     <Layout title="Inventaire produits" subtitle={projetActif?.nom}>
@@ -197,8 +202,8 @@ export default function Inventaire() {
     </Layout>
   );
 
-  const nbConformes = produits.filter((p) => p.conformite.statut === 'CONFORME').length;
-  const nbEcarts    = produits.filter((p) => p.conformite.statut !== 'CONFORME').length;
+  const nbConformes = produitsAffiches.filter((p) => p.conformite.statut === 'CONFORME').length;
+  const nbEcarts    = produitsAffiches.filter((p) => p.conformite.statut !== 'CONFORME').length;
 
   const handleExportPdf = async () => {
     if (!projetActif) return;
@@ -266,12 +271,12 @@ export default function Inventaire() {
             </select>
           </div>
         </div>
-        {pagination && pagination.total > 0 && (
+        {(filtresActifs || (pagination && pagination.total > 0)) && (
           <div className="flex items-center gap-12" style={{ marginTop: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
               {filtresActifs
-                ? <><strong style={{ color: 'var(--gray-800)' }}>{produitsFiltres.length}</strong> / {pagination.total} produit{pagination.total > 1 ? 's' : ''}</>
-                : <><strong style={{ color: 'var(--gray-800)' }}>{pagination.total}</strong> produit{pagination.total > 1 ? 's' : ''}</>
+                ? <><strong style={{ color: 'var(--gray-800)' }}>{produitsGlobaux.length}</strong> produit{produitsGlobaux.length !== 1 ? 's' : ''} <span style={{ fontStyle: 'italic' }}>(toutes zones)</span></>
+                : pagination && <><strong style={{ color: 'var(--gray-800)' }}>{pagination.total}</strong> produit{pagination.total > 1 ? 's' : ''}</>
               }
             </span>
             <span className="badge badge-conforme">{nbConformes} conforme{nbConformes !== 1 ? 's' : ''}</span>
@@ -291,31 +296,47 @@ export default function Inventaire() {
 
       {/* ── Tableau produits ─────────────────────────────────────── */}
       <div className="card">
-        {produits.length === 0 ? (
-          <div className="empty-state">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
-            </svg>
-            <div className="empty-state-title">Aucun produit inventorié</div>
-            <div className="empty-state-sub">
-              {!armoireId ? 'Sélectionnez une zone et une armoire.' : 'Cliquez sur "Ajouter un produit" pour commencer.'}
-            </div>
+        {loadingGlobal ? (
+          <div style={{ padding: 24 }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <div className="skeleton" style={{ height: 12, flex: 2 }} />
+                <div className="skeleton" style={{ height: 12, flex: 1 }} />
+                <div className="skeleton" style={{ height: 12, width: 70 }} />
+              </div>
+            ))}
           </div>
-        ) : produitsFiltres.length === 0 ? (
+        ) : produitsAffiches.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-title">Aucun résultat pour ce filtre</div>
-            <div className="empty-state-sub">
-              <button className="btn btn-ghost btn-sm" onClick={() => { setFiltreFds('tous'); setFiltrePeremption('tous'); }}>
-                Réinitialiser les filtres
-              </button>
-            </div>
+            {filtresActifs ? (
+              <>
+                <div className="empty-state-title">Aucun résultat pour ce filtre</div>
+                <div className="empty-state-sub">
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setFiltreFds('tous'); setFiltrePeremption('tous'); }}>
+                    Réinitialiser les filtres
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+                </svg>
+                <div className="empty-state-title">Aucun produit inventorié</div>
+                <div className="empty-state-sub">
+                  {!armoireId ? 'Sélectionnez une zone et une armoire.' : 'Cliquez sur "Ajouter un produit" pour commencer.'}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: 20 }}>Produit</th>
+                  {filtresActifs && <th style={{ paddingLeft: 20 }}>Zone</th>}
+                  {filtresActifs && <th>Armoire</th>}
+                  <th style={{ paddingLeft: filtresActifs ? undefined : 20 }}>Produit</th>
                   <th>Code</th>
                   <th style={{ textAlign: 'right' }}>Qté présente</th>
                   <th style={{ textAlign: 'right' }}>Qté utilisée</th>
@@ -326,12 +347,14 @@ export default function Inventaire() {
                 </tr>
               </thead>
               <tbody>
-                {produitsFiltres.map((p) => {
+                {produitsAffiches.map((p) => {
                   const perime = isExpired(p.datePeremption);
                   const expireBientot = !perime && p.datePeremption && new Date(p.datePeremption) <= in6m;
                   return (
                     <tr key={p.id}>
-                      <td style={{ paddingLeft: 20, fontWeight: 600 }}>{p.nom}</td>
+                      {filtresActifs && <td style={{ paddingLeft: 20, fontSize: 12, color: 'var(--gray-600)' }}>{(p as ProduitGlobal).zoneNom}</td>}
+                      {filtresActifs && <td style={{ fontSize: 12, color: 'var(--gray-600)' }}>{(p as ProduitGlobal).armoireNom}</td>}
+                      <td style={{ paddingLeft: filtresActifs ? undefined : 20, fontWeight: 600 }}>{p.nom}</td>
                       <td>
                         {p.codeProduit
                           ? <span style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4 }}>{p.codeProduit}</span>
@@ -385,7 +408,7 @@ export default function Inventaire() {
       </div>
 
       {/* ── Pagination ───────────────────────────────────────────── */}
-      {pagination && pagination.pages > 1 && (
+      {!filtresActifs && pagination && pagination.pages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16, marginBottom: 4 }}>
           <button
             className="btn btn-secondary btn-sm"

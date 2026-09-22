@@ -148,11 +148,28 @@ export interface ProduitPage {
   limit: number;
 }
 
+export interface ProduitGlobal extends ProduitAvecConformite {
+  armoireNom: string;
+  zoneNom:    string;
+}
+
+export interface ProduitGlobalPage {
+  data:  ProduitGlobal[];
+  total: number;
+}
+
 const PRODUITS_LIMIT = 50;
 
 export const produitsApi = {
   list:   (armoireId: number, page = 1) =>
     api.get<ProduitPage>(`/armoires/${armoireId}/produits?page=${page}&limit=${PRODUITS_LIMIT}`),
+  search: (projetId: number, filters: { statutFds?: string; perime?: boolean; bientot?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (filters.statutFds) qs.set('statutFds', filters.statutFds);
+    if (filters.perime)    qs.set('perime',    'true');
+    if (filters.bientot)   qs.set('bientot',   'true');
+    return api.get<ProduitGlobalPage>(`/projets/${projetId}/produits?${qs}`);
+  },
   create: (armoireId: number, data: Partial<Produit>) => api.post<ProduitAvecConformite>(`/armoires/${armoireId}/produits`, data),
   update: (id: number, data: Partial<Produit>) => api.put<ProduitAvecConformite>(`/produits/${id}`, data),
   delete: (id: number) => api.delete<void>(`/produits/${id}`),

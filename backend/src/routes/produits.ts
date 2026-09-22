@@ -28,6 +28,47 @@ async function getTauxArmoire(armoireId: number): Promise<number | null> {
   return calculerTauxConformiteArmoire(resultats);
 }
 
+// GET /api/projets/:projetId/produits?statutFds=&perime=&bientot=  (filtre global toutes armoires)
+router.get('/projets/:projetId/produits', requireAuth, ah(async (req: Request, res: Response) => {
+  const projetId  = parseId(req.params.projetId, res); if (projetId === null) return;
+  const statutFds = req.query.statutFds as string | undefined;
+  const perime    = req.query.perime    === 'true';
+  const bientot   = req.query.bientot   === 'true';
+
+  const where: Record<string, unknown> = {
+    armoire: { zone: { projetId } },
+  };
+  if (statutFds && ['A_JOUR', 'OBSOLETE', 'MANQUANTE'].includes(statutFds)) {
+    where.statutFds = statutFds;
+  }
+  const now   = new Date();
+  const in6m  = new Date(now); in6m.setMonth(in6m.getMonth() + 6);
+  if (perime) {
+    where.datePeremption = { lt: now };
+  } else if (bientot) {
+    where.datePeremption = { gte: now, lte: in6m };
+  }
+
+  const produits = await prisma.produit.findMany({
+    where,
+    include: { armoire: { include: { zone: true, resultats: true } } },
+    orderBy: [{ armoire: { zone: { nom: 'asc' } } }, { armoire: { nom: 'asc' } }, { nom: 'asc' }],
+  });
+
+  const result = produits.map((p) => {
+    const { armoire, ...prod } = p;
+    const taux = calculerTauxConformiteArmoire(armoire.resultats);
+    return {
+      ...prod,
+      conformite:  calculerConformiteProduit(prod, taux),
+      armoireNom:  armoire.nom,
+      zoneNom:     armoire.zone.nom,
+    };
+  });
+
+  return res.json({ data: result, total: result.length });
+}));
+
 // GET /api/armoires/:armoireId/produits  (avec pagination)
 router.get('/armoires/:armoireId/produits', requireAuth, ah(async (req: Request, res: Response) => {
   const armoireId = parseId(req.params.armoireId, res); if (armoireId === null) return;
