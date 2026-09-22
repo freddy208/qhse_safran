@@ -154,13 +154,13 @@ export default function Dashboard() {
           <div className="kpi-sub">Seuil : {alertes?.seuil ?? 3} semaines de retard</div>
         </div>
 
-        <div className={`kpi-card ${data.nbFdsManquantes > 0 ? 'kpi-danger' : 'kpi-success'}`}>
+        <div className={`kpi-card ${data.nbFdsAJour > 0 ? 'kpi-success' : ''}`}>
           <div className="kpi-icon">
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           </div>
-          <div className="kpi-label">FDS manquantes</div>
-          <div className="kpi-value">{data.nbFdsManquantes}</div>
-          <div className="kpi-sub">{data.nbFdsObsoletes} FDS obsolètes (&gt;3 ans)</div>
+          <div className="kpi-label">FDS à jour</div>
+          <div className="kpi-value">{data.nbFdsAJour}</div>
+          <div className="kpi-sub">{data.nbFdsObsoletes} obsolètes · {data.nbFdsManquantes} manquantes</div>
         </div>
 
         <div className={`kpi-card ${data.couverture.armoiresAuditees === data.couverture.totalArmoires && data.couverture.totalArmoires > 0 ? 'kpi-success' : data.couverture.armoiresAuditees > 0 ? 'kpi-warning' : ''}`}>
@@ -183,6 +183,24 @@ export default function Dashboard() {
           <div className="kpi-label">Produits inventoriés</div>
           <div className="kpi-value">{data.couverture.totalProduits}</div>
           <div className="kpi-sub">Dans toutes les armoires</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+          </div>
+          <div className="kpi-label">Quantité présente</div>
+          <div className="kpi-value">{data.totalQuantitePresente}</div>
+          <div className="kpi-sub">unités en stock (toutes armoires)</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div className="kpi-label">Quantité utilisée</div>
+          <div className="kpi-value">{data.totalQuantiteUtilisee}</div>
+          <div className="kpi-sub">unités consommées (toutes armoires)</div>
         </div>
 
         {data.statsExpiration && data.couverture.totalProduits > 0 && (<>

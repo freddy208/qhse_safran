@@ -9,12 +9,14 @@ interface ProduitForm {
   nom: string; codeProduit: string; quantitePresente: string;
   quantiteUtilisee: string; volumeMax: string;
   datePeremption: string; urlFds: string; fdsDateVerification: string;
+  statutFds: 'A_JOUR' | 'OBSOLETE' | 'MANQUANTE' | '';
+  responsable: string;
   raison: string;
 }
 const FORM_VIDE: ProduitForm = {
   nom: '', codeProduit: '', quantitePresente: '', quantiteUtilisee: '',
   volumeMax: '', datePeremption: '', urlFds: '', fdsDateVerification: '',
-  raison: '',
+  statutFds: '', responsable: '', raison: '',
 };
 function toISO(s: string) { return s ? new Date(s).toISOString() : undefined; }
 function isExpired(d: string | null | undefined) {
@@ -108,6 +110,8 @@ export default function Inventaire() {
       datePeremption:      p.datePeremption ? p.datePeremption.slice(0, 10) : '',
       urlFds:              p.urlFds ?? '',
       fdsDateVerification: p.fdsDateVerification ? p.fdsDateVerification.slice(0, 10) : '',
+      statutFds:           p.statutFds ?? '',
+      responsable:         p.responsable ?? '',
       raison:              p.raison ?? p.conformite.raisons.join(', '),
     });
     setEditId(p.id); setErr(null); setModal('edit');
@@ -124,10 +128,12 @@ export default function Inventaire() {
         codeProduit:         form.codeProduit || null,
         quantitePresente:    form.quantitePresente ? parseFloat(form.quantitePresente) : null,
         quantiteUtilisee:    form.quantiteUtilisee ? parseFloat(form.quantiteUtilisee) : null,
-        volumeMax:           form.volumeMax ? parseFloat(form.volumeMax) : null,
+        volumeMax:           form.volumeMax || null,
         datePeremption:      toISO(form.datePeremption),
         urlFds:              form.urlFds || null,
         fdsDateVerification: toISO(form.fdsDateVerification),
+        statutFds:           (form.statutFds || null) as 'A_JOUR' | 'OBSOLETE' | 'MANQUANTE' | null,
+        responsable:         form.responsable || null,
         raison:              form.raison || null,
       };
       if (editId) await produitsApi.update(editId, payload);
@@ -405,10 +411,10 @@ export default function Inventaire() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Volume max (L)</label>
-                    <input type="number" step="any" value={form.volumeMax}
+                    <label>Volume max</label>
+                    <input type="text" value={form.volumeMax}
                       onChange={(e) => setForm((p) => ({ ...p, volumeMax: e.target.value }))}
-                      placeholder="0"
+                      placeholder="Ex : 5L, Illimitée, 3*90ml…"
                     />
                   </div>
                   <div className="form-group">
@@ -421,6 +427,26 @@ export default function Inventaire() {
                     <label>Date vérif. FDS</label>
                     <input type="date" value={form.fdsDateVerification}
                       onChange={(e) => setForm((p) => ({ ...p, fdsDateVerification: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
+                  <div className="form-group">
+                    <label>Statut FDS</label>
+                    <select value={form.statutFds}
+                      onChange={(e) => setForm((p) => ({ ...p, statutFds: e.target.value as ProduitForm['statutFds'] }))}
+                    >
+                      <option value="">— Non défini —</option>
+                      <option value="A_JOUR">À jour</option>
+                      <option value="OBSOLETE">Obsolète (&gt; 3 ans)</option>
+                      <option value="MANQUANTE">Manquante</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Responsable</label>
+                    <input type="text" value={form.responsable}
+                      onChange={(e) => setForm((p) => ({ ...p, responsable: e.target.value }))}
+                      placeholder="Nom du responsable"
                     />
                   </div>
                 </div>

@@ -236,6 +236,7 @@ export type ResultatEnum    = 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR';
 export type ConformiteAudit = 'OUI' | 'NON';
 export type PrioriteAlerte  = 'FAIBLE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
 export type StatutAlerte    = 'OUVERTE' | 'EN_COURS' | 'RESOLUE';
+export type StatutFds       = 'A_JOUR' | 'OBSOLETE' | 'MANQUANTE';
 
 export interface User { id: number; nom: string; email: string; role: string; dateCreation?: string; }
 export interface Projet { id: number; nom: string; description?: string; scoreGlobal: number; nbAxes: number; }
@@ -247,7 +248,7 @@ export interface Armoire { id: number; zoneId: number; nom: string; tauxConformi
 export interface TypeChecklist { id: number; nom: string; criteres: Critere[]; }
 export interface Critere { id: number; typeChecklistId: number; libelle: string; ordre: number; }
 export interface ResultatCritere { id: number; armoireId: number; critereId: number; resultat: ResultatEnum; dateDerniereMaj: string; critere?: Critere & { typeChecklist: TypeChecklist }; }
-export interface Produit { id: number; armoireId: number; nom: string; codeProduit?: string | null; quantitePresente?: number | null; quantiteUtilisee?: number | null; volumeMax?: number | null; datePeremption?: string | null; urlFds?: string | null; fdsDateVerification?: string | null; raison?: string | null; dateDerniereMaj: string; }
+export interface Produit { id: number; armoireId: number; nom: string; codeProduit?: string | null; quantitePresente?: number | null; quantiteUtilisee?: number | null; volumeMax?: string | null; datePeremption?: string | null; urlFds?: string | null; fdsDateVerification?: string | null; statutFds?: StatutFds | null; responsable?: string | null; raison?: string | null; dateDerniereMaj: string; }
 export interface ConformiteProduit { statut: 'CONFORME' | 'ECART_MINEUR' | 'ECART_MAJEUR'; raisons: string[]; }
 export interface ProduitAvecConformite extends Produit { conformite: ConformiteProduit; }
 export interface ExigenceAudit { id: number; projetId: number; domaine: string; exigence: string; questionControle?: string | null; conformite?: ConformiteAudit | null; preuves?: string | null; actionAMener?: string | null; responsable?: string | null; dateAudit?: string | null; dateDerniereMaj: string; actions?: ActionLinked[]; }
@@ -262,8 +263,11 @@ export interface DashboardData {
   scoresAxes:  { id: number; code: string; intitule: string; ponderation: number; score: number }[];
   statuts:     { nbTotal: number; nbRealise: number; nbEnCours: number; nbNonDemarre: number };
   conformiteZones: { id: number; nom: string; tauxConformite: number | null; nbArmoires: number; armoiresAuditees: number }[];
-  nbFdsManquantes: number;
+  nbFdsAJour:      number;
   nbFdsObsoletes:  number;
+  nbFdsManquantes: number;
+  totalQuantitePresente: number;
+  totalQuantiteUtilisee: number;
   repartitionEcarts: { majeur: number; mineur: number; conforme: number };
   statsExpiration: {
     nbExpires: number; nbExpiresProchains: number; nbSansCode: number;

@@ -33,6 +33,12 @@ enum ResultatEnum {
   ECART_MAJEUR
 }
 
+enum StatutFds {
+  A_JOUR
+  OBSOLETE
+  MANQUANTE
+}
+
 enum ConformiteAudit {
   OUI
   NON
@@ -161,18 +167,20 @@ model ResultatCritere {
 }
 
 model Produit {
-  id                  Int       @id @default(autoincrement())
+  id                  Int        @id @default(autoincrement())
   armoireId           Int
   nom                 String
   codeProduit         String?
   quantitePresente    Float?
   quantiteUtilisee    Float?
-  volumeMax           Float?
+  volumeMax           String?
   datePeremption      DateTime?
   urlFds              String?
   fdsDateVerification DateTime?
+  statutFds           StatutFds?
+  responsable         String?
   raison              String?
-  dateDerniereMaj     DateTime  @updatedAt
+  dateDerniereMaj     DateTime   @updatedAt
 
   armoire Armoire @relation(fields: [armoireId], references: [id], onDelete: Cascade)
 

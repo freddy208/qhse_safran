@@ -77,13 +77,13 @@ router.get('/projets/:projetId/dashboard', requireAuth, ah(async (req: Request, 
     })
   );
 
-  const nbFdsManquantes  = tousLesProduits.filter((p) => !p.urlFds).length;
-  const nbFdsObsoletes   = tousLesProduits.filter((p) => {
-    if (!p.fdsDateVerification) return false;
-    const limite = new Date();
-    limite.setFullYear(limite.getFullYear() - 3);
-    return p.fdsDateVerification < limite;
-  }).length;
+  const nbFdsAJour      = tousLesProduits.filter((p) => p.statutFds === 'A_JOUR').length;
+  const nbFdsObsoletes  = tousLesProduits.filter((p) => p.statutFds === 'OBSOLETE').length;
+  const nbFdsManquantes = tousLesProduits.filter((p) => p.statutFds === 'MANQUANTE').length;
+  const totalQuantitePresente = tousLesProduits.reduce((s, p) => s + (p.quantitePresente ?? 0), 0);
+  const totalQuantiteUtilisee = tousLesProduits
+    .filter((p) => (p.quantiteUtilisee ?? 0) < 1_000_000)
+    .reduce((s, p) => s + (p.quantiteUtilisee ?? 0), 0);
 
   const repartitionEcarts = {
     majeur: tousLesProduits.filter((p) => p.conformite.statut === 'ECART_MAJEUR').length,
@@ -136,8 +136,11 @@ router.get('/projets/:projetId/dashboard', requireAuth, ah(async (req: Request, 
     scoresAxes,
     statuts: { nbTotal, nbRealise, nbEnCours, nbNonDemarre },
     conformiteZones,
-    nbFdsManquantes,
+    nbFdsAJour,
     nbFdsObsoletes,
+    nbFdsManquantes,
+    totalQuantitePresente,
+    totalQuantiteUtilisee,
     repartitionEcarts,
     statsExpiration,
     couverture: {

@@ -14,10 +14,12 @@ const produitSchema = z.object({
   codeProduit:         z.string().max(100).optional().nullable(),
   quantitePresente:    z.number().optional().nullable(),
   quantiteUtilisee:    z.number().optional().nullable(),
-  volumeMax:           z.number().optional().nullable(),
+  volumeMax:           z.string().max(100).optional().nullable(),
   datePeremption:      z.string().datetime().optional().nullable(),
   urlFds:              z.string().url().optional().nullable().or(z.literal('')),
   fdsDateVerification: z.string().datetime().optional().nullable(),
+  statutFds:           z.enum(['A_JOUR', 'OBSOLETE', 'MANQUANTE']).optional().nullable(),
+  responsable:         z.string().max(200).optional().nullable(),
   raison:              z.string().max(500).optional().nullable(),
 });
 
@@ -64,6 +66,8 @@ router.post('/armoires/:armoireId/produits', requireAuth, ah(async (req: Request
       datePeremption:      parsed.data.datePeremption ? new Date(parsed.data.datePeremption) : null,
       urlFds:              parsed.data.urlFds || null,
       fdsDateVerification: parsed.data.fdsDateVerification ? new Date(parsed.data.fdsDateVerification) : null,
+      statutFds:           parsed.data.statutFds ?? null,
+      responsable:         parsed.data.responsable ?? null,
       raison:              parsed.data.raison ?? null,
     },
   });
@@ -92,6 +96,8 @@ router.put('/produits/:id', requireAuth, ah(async (req: Request, res: Response) 
       datePeremption:      parsed.data.datePeremption ? new Date(parsed.data.datePeremption) : undefined,
       urlFds:              parsed.data.urlFds === '' ? null : parsed.data.urlFds,
       fdsDateVerification: parsed.data.fdsDateVerification ? new Date(parsed.data.fdsDateVerification) : undefined,
+      statutFds:           parsed.data.statutFds ?? undefined,
+      responsable:         parsed.data.responsable ?? undefined,
       raison:              parsed.data.raison ?? undefined,
     },
   });
