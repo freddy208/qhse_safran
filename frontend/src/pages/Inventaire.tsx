@@ -59,6 +59,8 @@ export default function Inventaire() {
   const [exportBusy, setExportBusy] = useState(false);
   const [modalZoneId,    setModalZoneId]    = useState<number | null>(null);
   const [modalArmoireId, setModalArmoireId] = useState<number | null>(null);
+  const [filtreFds,      setFiltreFds]      = useState<'tous' | 'A_JOUR' | 'OBSOLETE' | 'MANQUANTE'>('tous');
+  const [filtrePeremption, setFiltrePeremption] = useState<'tous' | 'perime' | 'bientot'>('tous');
 
   useEffect(() => {
     if (!projetActif) return;
@@ -153,6 +155,22 @@ export default function Inventaire() {
   const zoneActive = zones.find((z) => z.id === zoneId);
   const armoires   = zoneActive?.armoires ?? [];
 
+  const now = new Date();
+  const in6m = new Date(now); in6m.setMonth(in6m.getMonth() + 6);
+  const produitsFiltres = produits.filter((p) => {
+    if (filtreFds !== 'tous' && p.statutFds !== filtreFds) return false;
+    if (filtrePeremption === 'perime') {
+      if (!p.datePeremption || new Date(p.datePeremption) >= now) return false;
+    }
+    if (filtrePeremption === 'bientot') {
+      if (!p.datePeremption) return false;
+      const d = new Date(p.datePeremption);
+      if (!(d >= now && d <= in6m)) return false;
+    }
+    return true;
+  });
+  const filtresActifs = filtreFds !== 'tous' || filtrePeremption !== 'tous';
+
   if (loading) return (
     <Layout title="Inventaire produits" subtitle={projetActif?.nom}>
       <div className="card mb-12" style={{ padding: 16 }}>
@@ -230,18 +248,45 @@ export default function Inventaire() {
               {armoires.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
             </select>
           </div>
-          {pagination && pagination.total > 0 && (
-            <div className="flex items-center gap-12" style={{ paddingBottom: 0, paddingTop: 20, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
-                <strong style={{ color: 'var(--gray-800)' }}>{pagination.total}</strong> produit{pagination.total > 1 ? 's' : ''} au total
-              </span>
-              <span className="badge badge-conforme">{nbConformes} conforme{nbConformes !== 1 ? 's' : ''}</span>
-              {nbEcarts > 0 && (
-                <span className="badge badge-majeur">{nbEcarts} écart{nbEcarts !== 1 ? 's' : ''}</span>
-              )}
-            </div>
-          )}
+          <div className="form-group" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
+            <label>Statut FDS</label>
+            <select value={filtreFds} onChange={(e) => setFiltreFds(e.target.value as typeof filtreFds)}>
+              <option value="tous">Tous</option>
+              <option value="A_JOUR">À jour</option>
+              <option value="OBSOLETE">Obsolètes</option>
+              <option value="MANQUANTE">Manquantes</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: 1, minWidth: 160, marginBottom: 0 }}>
+            <label>Péremption</label>
+            <select value={filtrePeremption} onChange={(e) => setFiltrePeremption(e.target.value as typeof filtrePeremption)}>
+              <option value="tous">Tous</option>
+              <option value="perime">Périmés</option>
+              <option value="bientot">Expire ≤ 6 mois</option>
+            </select>
+          </div>
         </div>
+        {pagination && pagination.total > 0 && (
+          <div className="flex items-center gap-12" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
+              {filtresActifs
+                ? <><strong style={{ color: 'var(--gray-800)' }}>{produitsFiltres.length}</strong> / {pagination.total} produit{pagination.total > 1 ? 's' : ''}</>
+                : <><strong style={{ color: 'var(--gray-800)' }}>{pagination.total}</strong> produit{pagination.total > 1 ? 's' : ''}</>
+              }
+            </span>
+            <span className="badge badge-conforme">{nbConformes} conforme{nbConformes !== 1 ? 's' : ''}</span>
+            {nbEcarts > 0 && <span className="badge badge-majeur">{nbEcarts} écart{nbEcarts !== 1 ? 's' : ''}</span>}
+            {filtresActifs && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 12, padding: '2px 10px' }}
+                onClick={() => { setFiltreFds('tous'); setFiltrePeremption('tous'); }}
+              >
+                ✕ Réinitialiser filtres
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Tableau produits ─────────────────────────────────────── */}
@@ -256,6 +301,15 @@ export default function Inventaire() {
               {!armoireId ? 'Sélectionnez une zone et une armoire.' : 'Cliquez sur "Ajouter un produit" pour commencer.'}
             </div>
           </div>
+        ) : produitsFiltres.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-title">Aucun résultat pour ce filtre</div>
+            <div className="empty-state-sub">
+              <button className="btn btn-ghost btn-sm" onClick={() => { setFiltreFds('tous'); setFiltrePeremption('tous'); }}>
+                Réinitialiser les filtres
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -263,53 +317,67 @@ export default function Inventaire() {
                 <tr>
                   <th style={{ paddingLeft: 20 }}>Produit</th>
                   <th>Code</th>
-                  <th>Qté présente</th>
+                  <th style={{ textAlign: 'right' }}>Qté présente</th>
+                  <th style={{ textAlign: 'right' }}>Qté utilisée</th>
                   <th>Péremption</th>
                   <th>FDS</th>
                   <th>Conformité</th>
-                  <th style={{ width: 160 }}>Raisons</th>
                   <th style={{ width: 90 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {produits.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ paddingLeft: 20, fontWeight: 600 }}>{p.nom}</td>
-                    <td>
-                      {p.codeProduit
-                        ? <span style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4 }}>{p.codeProduit}</span>
-                        : <span className="text-muted">—</span>}
-                    </td>
-                    <td>{p.quantitePresente != null ? p.quantitePresente : <span className="text-muted">—</span>}</td>
-                    <td>
-                      {p.datePeremption ? (
-                        <span style={{ color: isExpired(p.datePeremption) ? '#C0392B' : 'inherit', fontWeight: isExpired(p.datePeremption) ? 600 : 400 }}>
-                          {new Date(p.datePeremption).toLocaleDateString('fr-FR')}
-                          {isExpired(p.datePeremption) && <span style={{ fontSize: 11, marginLeft: 4 }}>⚠</span>}
-                        </span>
-                      ) : <span className="text-muted">—</span>}
-                    </td>
-                    <td>
-                      {p.urlFds
-                        ? <a href={p.urlFds} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue-700)' }}>Voir FDS ↗</a>
-                        : <span style={{ color: '#C0392B', fontSize: 12, fontWeight: 600 }}>⚠ Manquante</span>}
-                    </td>
-                    <td><ConformiteBadge statut={p.conformite.statut} /></td>
-                    <td style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                      {p.raison
-                        ? p.raison
-                        : p.conformite.raisons.length > 0
-                          ? p.conformite.raisons.join(', ')
+                {produitsFiltres.map((p) => {
+                  const perime = isExpired(p.datePeremption);
+                  const expireBientot = !perime && p.datePeremption && new Date(p.datePeremption) <= in6m;
+                  return (
+                    <tr key={p.id}>
+                      <td style={{ paddingLeft: 20, fontWeight: 600 }}>{p.nom}</td>
+                      <td>
+                        {p.codeProduit
+                          ? <span style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--gray-100)', padding: '2px 6px', borderRadius: 4 }}>{p.codeProduit}</span>
                           : <span className="text-muted">—</span>}
-                    </td>
-                    <td>
-                      <div className="flex gap-6">
-                        <button className="btn-icon" title="Modifier" onClick={() => ouvrirEdition(p)}><IconEdit /></button>
-                        <button className="btn-icon" title="Supprimer" onClick={() => supprimer(p.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {p.quantitePresente != null ? p.quantitePresente : <span className="text-muted">—</span>}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {p.quantiteUtilisee != null ? p.quantiteUtilisee : <span className="text-muted">—</span>}
+                      </td>
+                      <td>
+                        {p.datePeremption ? (
+                          <span style={{
+                            color: perime ? '#C0392B' : expireBientot ? '#d97706' : 'inherit',
+                            fontWeight: perime || expireBientot ? 600 : 400,
+                          }}>
+                            {new Date(p.datePeremption).toLocaleDateString('fr-FR')}
+                            {perime && <span style={{ fontSize: 11, marginLeft: 4 }}>⚠ périmé</span>}
+                            {expireBientot && <span style={{ fontSize: 11, marginLeft: 4 }}>⏰</span>}
+                          </span>
+                        ) : <span className="text-muted">—</span>}
+                      </td>
+                      <td>
+                        {p.statutFds === 'A_JOUR'
+                          ? p.urlFds
+                            ? <a href={p.urlFds} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue-700)' }}>À jour ↗</a>
+                            : <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 600 }}>✓ À jour</span>
+                          : p.statutFds === 'OBSOLETE'
+                            ? <span style={{ color: '#d97706', fontSize: 12, fontWeight: 600 }}>⏰ Obsolète</span>
+                            : p.statutFds === 'MANQUANTE'
+                              ? <span style={{ color: '#C0392B', fontSize: 12, fontWeight: 600 }}>⚠ Manquante</span>
+                              : p.urlFds
+                                ? <a href={p.urlFds} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue-700)' }}>Voir FDS ↗</a>
+                                : <span className="text-muted">—</span>}
+                      </td>
+                      <td><ConformiteBadge statut={p.conformite.statut} /></td>
+                      <td>
+                        <div className="flex gap-6">
+                          <button className="btn-icon" title="Modifier" onClick={() => ouvrirEdition(p)}><IconEdit /></button>
+                          <button className="btn-icon" title="Supprimer" onClick={() => supprimer(p.id)} style={{ color: '#C0392B', borderColor: '#fca5a5' }}><IconTrash /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
